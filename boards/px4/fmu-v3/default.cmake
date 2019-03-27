@@ -63,6 +63,7 @@ px4_add_board(
 		uavcan
 
 	MODULES
+		px4_simulink_app
 		attitude_estimator_q
 		camera_feedback
 		commander
