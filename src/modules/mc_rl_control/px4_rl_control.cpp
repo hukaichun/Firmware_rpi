@@ -60,6 +60,7 @@
 
 // Dynamic link
 #include <dlfcn.h>
+#include <sys/stat.h>
 
 // PWM output
 #include <drivers/linux_pwm_out/navio_sysfs.h>
@@ -88,7 +89,9 @@
 
 
 
-#define VARIABLE_LIB "/home/pi/lib/libnncontroller.so"
+#define NN_LIB "/home/pi/lib/libnncontroller.so"
+#define PWM_DEVICE "/sys/class/pwm/pwmchip0"
+
 #define BASE_RATE 1000
 #define SUBTASK1_RATE 1		// 1s
 #define SUBTASK2_RATE 0.01	// 100s
@@ -155,7 +158,9 @@ public:
 	 */
 	int		position_setpoint_publish();
 
-	void 	pwm_convert();
+	inline void 	calc_rl_pwm_output();
+
+	inline void 	calc_preheat_pwm_output();
 
 	void 	subtask_list();
 
@@ -178,6 +183,7 @@ private:
 	orb_advert_t	_armed_pub{nullptr};
 	orb_advert_t	_position_sp_pub{nullptr};
 
+
 	struct input_rc_s _input_rc{};
 	struct vehicle_attitude_s _vehicle_attitude{};
 	struct vehicle_local_position_s _vehicle_local_position{};
@@ -187,7 +193,6 @@ private:
 
 	perf_counter_t	_perf_control_latency = nullptr;
 
-	static constexpr char _device[64] = "/sys/class/pwm/pwmchip0";
 	static const int _max_num_outputs = 8; ///< maximum number of outputs the driver should use
 	linux_pwm_out::NavioSysfsPWMOut *pwm_out_handle;
 
@@ -200,6 +205,7 @@ private:
 
 	bool	armed;
 	bool	preheat;
+	bool 	clear_pos_sp_trigger;
 	float	battery_voltage;
 	int 	battery_warning;
 
@@ -235,6 +241,7 @@ MulticopterRLControl::MulticopterRLControl() :
 	R(),
 	armed(false),
 	preheat(false),
+	clear_pos_sp_trigger(false),
 	battery_voltage(12),
 	battery_warning(0)
 {
@@ -307,6 +314,26 @@ MulticopterRLControl::update_inputs()
 		tmp(2) 			= _input_rc.values[2];
 		vehicle_mode 	= _input_rc.values[6];
 
+		if (vehicle_mode > 1700) {
+			preheat = true;
+			armed 	= true;
+		} else if (vehicle_mode > 1300) {
+			preheat = true;
+			armed 	= false;
+			if (clear_pos_sp_trigger == false){
+				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] armed");
+				_position_sp.zero();
+				clear_pos_sp_trigger = true;
+			}
+		} else {
+			preheat = false;
+			armed 	= false;
+			if (clear_pos_sp_trigger == true){
+				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] disarmed");
+				clear_pos_sp_trigger = false;
+			}
+		}
+
 		for (int i = 0; i < 3; ++i)
 		{
 			if (tmp(i) > 1570) {
@@ -319,18 +346,6 @@ MulticopterRLControl::update_inputs()
 		}
 
 		_position_sp += tmp/1000;
-
-
-		if (vehicle_mode > 1700) {
-			preheat = true;
-			armed 	= true;
-		} else if (vehicle_mode > 1300) {
-			preheat = true;
-			armed 	= false;
-		} else {
-			preheat = false;
-			armed 	= false;
-		}
 	}
 
 	bool vehicle_attitude_updated = false;
@@ -383,7 +398,7 @@ int
 MulticopterRLControl::arm_publish()
 {
 	_armed.timestamp = hrt_absolute_time();
-	_armed.armed = armed;
+	_armed.armed = preheat;
 
 	// lazily publish _armed only once available
 	if (_armed_pub != nullptr) {
@@ -428,15 +443,21 @@ MulticopterRLControl::position_setpoint_publish()
 void
 MulticopterRLControl::load_external_variable()
 {	
-	//TODO: check file before dlclose();
-	if (fHandle == nullptr){
-		warn("fHandle is null");
-	} else {
+
+	struct stat buffer;   
+	if (stat(NN_LIB, &buffer) != 0 && fHandle == nullptr){
+		errx(1, ".so file does not exist and cannot create fHandle");
+		return;
+	} else if (stat(NN_LIB, &buffer) != 0) {
+		warn(".so file does not exist");
+		return;
+	} else if (fHandle != nullptr) {
 		warn("release fHandle");
 		dlclose(fHandle);
 	}
 
-    fHandle = dlopen(VARIABLE_LIB, RTLD_LAZY);
+
+    fHandle = dlopen(NN_LIB, RTLD_LAZY);
 
     if (!fHandle) {
         fprintf (stderr, "%s\n", dlerror());
@@ -450,11 +471,14 @@ MulticopterRLControl::load_external_variable()
     if (!func) {
         warn("cannot load nn_controller");
         exit(1);
+    } else {
+    	warn("nn param changed");
+    	mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] nn param changed");
     }
 }
 
-void
-MulticopterRLControl::pwm_convert()
+inline void
+MulticopterRLControl::calc_rl_pwm_output()
 {
 	for (int i = 0; i < 4; ++i)
 	{
@@ -463,10 +487,19 @@ MulticopterRLControl::pwm_convert()
 
 		// warn("motor %d pwm: %lf", i, pwm_output[i]);
 
-		if (pwm_output[i] < 1000)
-			pwm_output[i] = 1000;
-		else if (pwm_output[i] > 2000)
-			pwm_output[i] = 2000;
+		if (pwm_output[i] < 900)
+			pwm_output[i] = 900;
+		else if (pwm_output[i] > 2100)
+			pwm_output[i] = 2100;
+	}
+}
+
+inline void
+MulticopterRLControl::calc_preheat_pwm_output()
+{
+	for (int i = 0; i < 4; ++i)
+	{
+		pwm_output[i] = 900;
 	}
 }
 
@@ -515,17 +548,30 @@ MulticopterRLControl::task_main()
 	while(!_task_should_exit){
 		if ((hrt_absolute_time() - now) > 1e9/BASE_RATE){
 			update_inputs();
+			load_external_variable();
 
 			#ifdef DEBUG
 			warn("one second");
+			hrt_abstime start_time = hrt_absolute_time();
 			#endif
 			
-			hrt_abstime start_time = hrt_absolute_time();
 
 			_position_err = _position - _position_err;
 			nn_output = func(R, _position_err, _velocity, _angular_rate);
 
-			pwm_convert();
+			if (armed == false && preheat == false)
+			{
+				calc_preheat_pwm_output();
+			}
+			else if (armed == false && preheat == true)
+			{
+				calc_preheat_pwm_output();
+			}
+			else if (armed == true)
+			{
+				calc_rl_pwm_output();
+			}
+
 			// send_pwm_output(pwm_output);
 
 			#ifdef DEBUG
@@ -551,7 +597,7 @@ MulticopterRLControl::task_main()
 	/* init pwm output*/
 	_perf_control_latency = perf_alloc(PC_ELAPSED, "linux_pwm_out control latency");
 	PX4_INFO("Starting PWM output in Navio mode");
-	pwm_out_handle = new linux_pwm_out::NavioSysfsPWMOut(_device, _max_num_outputs);
+	pwm_out_handle = new linux_pwm_out::NavioSysfsPWMOut(PWM_DEVICE, _max_num_outputs);
 	if (pwm_out_handle->init() != 0) {
 		PX4_ERR("PWM output init failed");
 		delete pwm_out_handle;
