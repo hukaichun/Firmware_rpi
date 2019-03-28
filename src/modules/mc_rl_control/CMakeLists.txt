@@ -30,16 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+#find_package(Threads REQUIRED)
 px4_add_module(
 	MODULE modules__mc_rl_control
 	MAIN mc_rl_control
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+#		-std=c++0x -pthread
 	SRCS
 		px4_rl_control.cpp
 	DEPENDS
 		git_ecl
 		ecl_geo
+		version
 	)
 
-target_link_libraries(modules__mc_rl_control PUBLIC dl)
+target_link_libraries(modules__mc_rl_control PUBLIC dl )

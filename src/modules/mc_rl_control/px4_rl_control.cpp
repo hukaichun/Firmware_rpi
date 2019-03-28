@@ -57,6 +57,7 @@
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <iostream>
+#include <thread>
 
 // Dynamic link
 #include <dlfcn.h>
@@ -100,7 +101,7 @@
 
 
 using namespace matrix;
-
+using namespace std;
 /**
  * rl_control app start / stop handling function
  *
@@ -168,6 +169,8 @@ public:
 
 	Vector<float, 4>	*rl_controller(Dcmf, Vector3f, Vector3f, Vector3f);
 
+	void 	write_2_file();
+
 private:
 	bool	_task_should_exit;		/**< if true, task should exit */
 	int		_main_task;			/**< handle for task */
@@ -209,13 +212,15 @@ private:
 	float	battery_voltage;
 	int 	battery_warning;
 
-	void *fHandle;
+	void 	*fHandle;
+	char 	*policy_version;
 	Vector<float, 4> 	(*func)(Dcmf &, Vector3f &, Vector3f &, Vector3f &);
 
 	Vector<float, 4> 	nn_output;
 	double				pwm_calc_tmp[4] = {0};
 	uint16_t			pwm_output[4] = {0};
 
+	FILE *f = fopen("/home/pi/log_flie", "w");
 
 	void		task_main();
 
@@ -384,7 +389,7 @@ MulticopterRLControl::update_inputs()
 void
 MulticopterRLControl::status()
 {
-	warnx("drop state: good");
+	warnx("rl controller state: good");
 }
 
 void
@@ -466,6 +471,8 @@ MulticopterRLControl::load_external_variable()
 
     dlerror();
 
+  	policy_version = (char *)dlsym(fHandle, "file_name");
+
     func = (Vector<float, 4>(*)(Dcmf &, Vector3f &, Vector3f &, Vector3f &))dlsym(fHandle,"nn_controller");
 
     if (!func) {
@@ -527,6 +534,25 @@ MulticopterRLControl::subtask_list()
 	// }
 }
 
+void 
+MulticopterRLControl::write_2_file()
+{
+	while(1){
+		// hrt_abstime time1 = hrt_absolute_time();
+		// hrt_abstime time2;
+	    for (float number = 0; number < 32; number++)
+	    {
+	        fprintf(f, "Number %f", (double)number);
+	    }
+	    fprintf(f, "\n");
+
+	    // time2 = hrt_absolute_time();
+	    // cout << time2-time1 << endl;
+	    sleep(1);
+	}
+
+}
+
 void
 MulticopterRLControl::task_main()
 {
@@ -545,16 +571,27 @@ MulticopterRLControl::task_main()
 
 	load_external_variable();
 
+	thread 	write_thread([this] { write_2_file(); });
+	write_thread.join();
+
+
+	// FILE *f = fopen("/home/pi/log_flie", "w");
+ //    float number = 0.0f;
+ //    int written = 0;
+ //    char *buf = (char *)malloc(100000);
+ //    setbuffer(f, buf, 100000);
+			#define DEBUG
+
 	while(!_task_should_exit){
 		if ((hrt_absolute_time() - now) > 1e9/BASE_RATE){
-			update_inputs();
-			load_external_variable();
 
+			now = hrt_absolute_time();
 			#ifdef DEBUG
-			warn("one second");
-			hrt_abstime start_time = hrt_absolute_time();
+			// warn("one second");
 			#endif
-			
+			// warn("%s", policy_version);
+
+			update_inputs();
 
 			_position_err = _position - _position_err;
 			nn_output = func(R, _position_err, _velocity, _angular_rate);
@@ -562,6 +599,8 @@ MulticopterRLControl::task_main()
 			if (armed == false && preheat == false)
 			{
 				calc_preheat_pwm_output();
+				calc_rl_pwm_output();
+
 			}
 			else if (armed == false && preheat == true)
 			{
@@ -571,22 +610,28 @@ MulticopterRLControl::task_main()
 			{
 				calc_rl_pwm_output();
 			}
-
+		    // for (number = 0; number < 32; number++)
+		    // {
+		    //     written += fprintf(f, "Number %f\n", (double)number);
+		    // }
+		    // for (number = 0; number < written; number++) {
+		    //     printf("%c", buf[number]);
+		    // }
 			// send_pwm_output(pwm_output);
 
-			#ifdef DEBUG
-			for (int i = 0; i < 4; ++i)
-			{
-				std::cout << nn_output(i) << std::endl;
-			}
-			// std::cout << nn_output(0) << std::endl;
-			#endif
+			// #ifdef DEBUG
+			// for (int i = 0; i < 4; ++i)
+			// {
+			// 	std::cout << nn_output(i) << std::endl;
+			// }
+			// // std::cout << nn_output(0) << std::endl;
+			// #endif
 
 			subtask_list();
-			now = hrt_absolute_time();
 
 			#ifdef DEBUG
-			warn("takes %dus", (uint)(now-start_time));
+			hrt_abstime end_time = hrt_absolute_time();
+			warn("takes %dus", (uint)(end_time-now));
 			#endif
 
 			arm_publish();
