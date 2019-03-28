@@ -43,6 +43,8 @@
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <px4_log.h>
+#include <px4_posix.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,6 +79,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/actuator_outputs.h>
+
 
 #include <parameters/param.h>
 #include <systemlib/err.h>
@@ -134,9 +138,24 @@ public:
 	void	status();
 
 	/**
-	 * Update all input data.
+	 * Update input rc data.
 	 */
-	void	update_inputs();
+	void 	input_rc_poll();
+
+	/**
+	 * Update vehicle attitude data.
+	 */
+	void 	vehicle_attitude_poll();
+
+	/**
+	 * Update local position data.
+	 */
+	void 	vehicle_local_position_poll();
+
+	/**
+	 * Update battery status data.
+	 */
+	void 	battery_status_poll();
 
 	/**
 	 * Send pwm output.
@@ -158,13 +177,13 @@ public:
 	 */
 	int		position_setpoint_publish();
 
+	int 	actuator_outputs_publish();
+	
 	inline void 	calc_rl_pwm_output();
 
 	inline void 	calc_preheat_pwm_output();
 
 	void 	subtask_list();
-
-	inline Vector3f 	position_error();
 
 	Vector<float, 4>	*rl_controller(Dcmf, Vector3f, Vector3f, Vector3f);
 
@@ -182,6 +201,7 @@ private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
 	orb_advert_t	_armed_pub{nullptr};
 	orb_advert_t	_position_sp_pub{nullptr};
+	orb_advert_t	_actuator_outputs_pub{nullptr};
 
 
 	struct input_rc_s _input_rc{};
@@ -190,6 +210,7 @@ private:
 	struct position_setpoint_s _position_setpoint{};
 	struct battery_status_s _battery_status{};
 	struct actuator_armed_s _armed{};
+	struct actuator_outputs_s _actuator_outputs{};
 
 	perf_counter_t	_perf_control_latency = nullptr;
 
@@ -209,7 +230,7 @@ private:
 	float	battery_voltage;
 	int 	battery_warning;
 
-	void *fHandle;
+	void 	*fHandle;
 	Vector<float, 4> 	(*func)(Dcmf &, Vector3f &, Vector3f &, Vector3f &);
 
 	Vector<float, 4> 	nn_output;
@@ -285,7 +306,7 @@ MulticopterRLControl::start()
 	/* start the task */
 	_main_task = px4_task_spawn_cmd("mc_rl_control",
 					SCHED_DEFAULT,
-					SCHED_PRIORITY_DEFAULT + 15,
+					SCHED_PRIORITY_ATTITUDE_CONTROL,
 					1500,
 					(px4_main_t)&MulticopterRLControl::task_main_trampoline,
 					nullptr);
@@ -299,7 +320,7 @@ MulticopterRLControl::start()
 }
 
 void
-MulticopterRLControl::update_inputs()
+MulticopterRLControl::input_rc_poll()
 {
 	bool input_rc_updated = false;
 	orb_check(_input_rc_sub, &input_rc_updated);
@@ -348,16 +369,26 @@ MulticopterRLControl::update_inputs()
 		_position_sp += tmp/1000;
 	}
 
+}
+
+
+void
+MulticopterRLControl::vehicle_attitude_poll()
+{
 	bool vehicle_attitude_updated = false;
 	orb_check(_vehicle_attitude_sub, &vehicle_attitude_updated);
 	if (vehicle_attitude_updated) {
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_attitude);
-		R = Dcmf(_vehicle_attitude.q);
+		R = Dcmf(Quatf(_vehicle_attitude.q)).T();
 		_angular_rate(0) = _vehicle_attitude.rollspeed;
 		_angular_rate(1) = _vehicle_attitude.pitchspeed;
 		_angular_rate(2) = _vehicle_attitude.yawspeed;
 	}
+}
 
+void
+MulticopterRLControl::vehicle_local_position_poll()
+{
 	bool vehicle_local_position_update = false;
 	orb_check(_vehicle_local_position_sub, &vehicle_local_position_update);
 	if (vehicle_local_position_update) {
@@ -368,9 +399,13 @@ MulticopterRLControl::update_inputs()
 
 		_velocity(0) = _vehicle_local_position.vx;
 		_velocity(1) = _vehicle_local_position.vy;
-		_velocity(2) = _vehicle_local_position.vz;	
+		_velocity(2) = _vehicle_local_position.vz;
 	}
+}
 
+void
+MulticopterRLControl::battery_status_poll()
+{
 	bool battery_status_update = false;
 	orb_check(_battery_status_sub, &battery_status_update);
 	if (battery_status_update) {
@@ -379,7 +414,6 @@ MulticopterRLControl::update_inputs()
 		battery_warning = _battery_status.warning;
 	}
 }
-
 
 void
 MulticopterRLControl::status()
@@ -440,6 +474,33 @@ MulticopterRLControl::position_setpoint_publish()
 	}
 }
 
+int
+MulticopterRLControl::actuator_outputs_publish()
+{
+	_actuator_outputs.output[0] = pwm_output[0];
+    _actuator_outputs.output[1] = pwm_output[1];
+    _actuator_outputs.output[2] = pwm_output[2];
+    _actuator_outputs.output[3] = pwm_output[3];
+
+    /* now publish to actuator_outputs in case anyone wants to know... */
+    _actuator_outputs.timestamp = hrt_absolute_time();
+
+    // lazily publish _armed only once available
+	if (_position_sp_pub != nullptr) {
+		return orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &_actuator_outputs);
+
+	} else {
+		_actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
+
+		if (_actuator_outputs_pub != nullptr) {
+			return OK;
+
+		} else {
+			return -1;
+		}
+	}
+}
+
 void
 MulticopterRLControl::load_external_variable()
 {	
@@ -480,12 +541,18 @@ MulticopterRLControl::load_external_variable()
 inline void
 MulticopterRLControl::calc_rl_pwm_output()
 {
+	double battery_voltage_pwm_calc = battery_voltage;
+	if (battery_voltage_pwm_calc < 1.0)
+		battery_voltage_pwm_calc = 11.1;
+
 	for (int i = 0; i < 4; ++i)
 	{
 		pwm_calc_tmp[i] = ((double)nn_output(i)*4 + MASS/4*9.8);
-		pwm_output[i] = (uint16_t)((-4e-4 + sqrt(16e-8+(4*3e-7*pwm_calc_tmp[i])/(double)battery_voltage))/(2*3e-7)) + 1000;
 
-		// warn("motor %d pwm: %lf", i, pwm_output[i]);
+		if (pwm_calc_tmp[i] < 0)
+			pwm_calc_tmp[i] = 0;
+
+		pwm_output[i] = (uint16_t)((-4e-4 + sqrt(16e-8+(4*3e-7*pwm_calc_tmp[i])/battery_voltage_pwm_calc))/(2*3e-7)) + 1000;
 
 		if (pwm_output[i] < 900)
 			pwm_output[i] = 900;
@@ -509,6 +576,9 @@ MulticopterRLControl::subtask_list()
 	subtask_counter[0]++;
 	if (subtask_counter[0] > 1e6/SUBTASK1_RATE)	
 	{
+		arm_publish();
+		position_setpoint_publish();
+		actuator_outputs_publish();
 		subtask_counter[0] = 0;
 	}
 
@@ -530,6 +600,16 @@ MulticopterRLControl::subtask_list()
 void
 MulticopterRLControl::task_main()
 {
+	/* init pwm output*/
+	// _perf_control_latency = perf_alloc(PC_ELAPSED, "linux_pwm_out control latency");
+	PX4_INFO("Starting PWM output in Navio mode");
+	pwm_out_handle = new linux_pwm_out::NavioSysfsPWMOut(PWM_DEVICE, _max_num_outputs);
+	if (pwm_out_handle->init() != 0) {
+		PX4_ERR("PWM output init failed");
+		delete pwm_out_handle;
+		return;
+	}
+
 	_input_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -537,18 +617,34 @@ MulticopterRLControl::task_main()
 
 	_armed_pub = orb_advertise(ORB_ID(actuator_armed), &_armed);
 	_position_sp_pub = orb_advertise(ORB_ID(position_setpoint), &_position_setpoint);
+	_actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
 
-	orb_set_interval(_input_rc_sub, 10);			//set update rate 10Hz
-	orb_set_interval(_vehicle_attitude_sub, 500);
-	orb_set_interval(_vehicle_local_position_sub, 100);
-	orb_set_interval(_battery_status_sub, 5);
+	orb_set_interval(_input_rc_sub, 100);			//set update rate 10Hz
+	orb_set_interval(_vehicle_attitude_sub, 5);
+	orb_set_interval(_vehicle_local_position_sub, 10);
+	orb_set_interval(_battery_status_sub, 200);
 
 	load_external_variable();
 
+	/* wakeup source: gyro data from sensor selected by the sensor app */
+	px4_pollfd_struct_t poll_fds = {.fd = _vehicle_attitude_sub,	.events = POLLIN};
+
 	while(!_task_should_exit){
-		if ((hrt_absolute_time() - now) > 1e9/BASE_RATE){
-			update_inputs();
-			load_external_variable();
+
+		/* wait for up to 100ms for data */
+		int pret = px4_poll(&poll_fds, 1, 10);
+
+		if (pret < 0) {
+			/* this is seriously bad - should be an emergency */
+				PX4_ERR("ERROR return value from poll(): %d", pret);
+		} else {
+
+			input_rc_poll();
+			vehicle_attitude_poll();
+			vehicle_local_position_poll();
+			battery_status_poll();
+			// load_external_variable();
+			subtask_list();
 
 			#ifdef DEBUG
 			warn("one second");
@@ -562,6 +658,7 @@ MulticopterRLControl::task_main()
 			if (armed == false && preheat == false)
 			{
 				calc_preheat_pwm_output();
+				calc_rl_pwm_output();
 			}
 			else if (armed == false && preheat == true)
 			{
@@ -572,7 +669,7 @@ MulticopterRLControl::task_main()
 				calc_rl_pwm_output();
 			}
 
-			// send_pwm_output(pwm_output);
+			send_pwm_output(pwm_output);
 
 			#ifdef DEBUG
 			for (int i = 0; i < 4; ++i)
@@ -589,21 +686,9 @@ MulticopterRLControl::task_main()
 			warn("takes %dus", (uint)(now-start_time));
 			#endif
 
-			arm_publish();
-			position_setpoint_publish();
+
 		}
 	}
-
-	/* init pwm output*/
-	_perf_control_latency = perf_alloc(PC_ELAPSED, "linux_pwm_out control latency");
-	PX4_INFO("Starting PWM output in Navio mode");
-	pwm_out_handle = new linux_pwm_out::NavioSysfsPWMOut(PWM_DEVICE, _max_num_outputs);
-	if (pwm_out_handle->init() != 0) {
-		PX4_ERR("PWM output init failed");
-		delete pwm_out_handle;
-		return;
-	}
-
 }
 
 int
