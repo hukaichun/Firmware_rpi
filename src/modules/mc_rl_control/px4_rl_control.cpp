@@ -100,7 +100,7 @@
 
 #define BASE_RATE 		1000
 #define SUBTASK1_RATE 	1		// 1s
-#define SUBTASK2_RATE 	0.01	// 100s
+#define SUBTASK2_RATE 	0.1	// 100s
 #define MASS 			0.665
 
 
@@ -132,7 +132,7 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	int		start();
+	int	start();
 
 	/**
 	 * Display status.
@@ -631,9 +631,9 @@ MulticopterRLControl::subtask_list()
 	subtask_counter[0]++;
 	if (subtask_counter[0] > 1e6/SUBTASK1_RATE)	
 	{
-		arm_publish();
-		position_setpoint_publish();
-		actuator_outputs_publish();
+		// arm_publish();
+		// position_setpoint_publish();
+		// actuator_outputs_publish();
 		subtask_counter[0] = 0;
 	}
 
@@ -652,29 +652,11 @@ MulticopterRLControl::subtask_list()
 	// }
 }
 
-// void 
-// MulticopterRLControl::write_2_file()
-// {
-// 	for (int i = 0; i < 18; ++i)
-// 	{
-// 		log_buffer[i] = input_states(i);
-// 	}
-
-// 	for (int i = 0; i < 4; ++i)
-// 	{
-// 		log_buffer[i+18] = nn_output(i);
-// 	}
-
-// 	fwrite(log_buffer, sizeof(float), 22, fp);
-
-// }
-
 void
 MulticopterRLControl::task_main()
 {
 	/* init pwm output*/
 	pwm_device_init();
-
 
 	_input_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -686,20 +668,11 @@ MulticopterRLControl::task_main()
 	_actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
 
 	orb_set_interval(_input_rc_sub, 100);			//set update rate 10Hz
-	orb_set_interval(_vehicle_attitude_sub, 5);
+	// orb_set_interval(_vehicle_attitude_sub, 5);	// Pull loop uprate to maximum speed which is equal to uorb publish speed
 	orb_set_interval(_vehicle_local_position_sub, 10);
 	orb_set_interval(_battery_status_sub, 200);
 
 	load_external_variable();
-
-
-
-	// FILE *f = fopen("/home/pi/log_flie", "w");
- //    float number = 0.0f;
- //    int written = 0;
- //    char *buf = (char *)malloc(100000);
- //    setbuffer(f, buf, 100000);
-			// #define DEBUG
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {.fd = _vehicle_attitude_sub,	.events = POLLIN};
@@ -718,13 +691,13 @@ MulticopterRLControl::task_main()
 			vehicle_attitude_poll();
 			vehicle_local_position_poll();
 			battery_status_poll();
-			// load_external_variable();
-			subtask_list();
+			// subtask_list();
 
 			now = hrt_absolute_time();
 
 			_position_err = _position - _position_err;
 			prepare_nn_states();
+			log_buffer.store(input_states, nn_output);
 			nn_output = func(input_states);
 
 			if (preheat == false)
@@ -743,6 +716,9 @@ MulticopterRLControl::task_main()
 			pwm_device_output(pwm_output);
 			
 			subtask_list();
+			arm_publish();
+			position_setpoint_publish();
+			actuator_outputs_publish();
 
 		}
 	}

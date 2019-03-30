@@ -73,11 +73,18 @@
 			"shell": true
 		},
 		{
-			"name": "MindPX_V2: make and upload",
+			"name": "Navio2: make",
 			"working_dir": "${project_path}",
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
-			"cmd": ["make upload mindpx-v2_default -j8"],
+			"cmd": ["make emlid_navio2_cross"],
 			"shell": true
-		}
+		},
+		{
+			"name": "Navio2: make and upload",
+			"working_dir": "${project_path}",
+			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+			"cmd": ["make emlid_navio2_cross upload"],
+			"shell": true
+		}		
 	]
 }
