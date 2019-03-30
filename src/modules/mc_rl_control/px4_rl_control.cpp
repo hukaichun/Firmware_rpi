@@ -52,7 +52,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
-#include <poll.h>
 #include <time.h>
 #include <sys/ioctl.h>
 #include <drivers/device/device.h>
@@ -92,15 +91,17 @@
 #include <matrix/math.hpp>
 #include <matrix/matrix/math.hpp>
 
+#include "log_buffer.cpp"
 
 
-#define NN_LIB "/home/pi/lib/libnncontroller.so"
-#define PWM_DEVICE "/sys/class/pwm/pwmchip0"
 
-#define BASE_RATE 1000
-#define SUBTASK1_RATE 1		// 1s
-#define SUBTASK2_RATE 0.01	// 100s
-#define MASS 0.665
+#define NN_LIB	 	"/home/pi/lib/libnncontroller.so"
+#define PWM_DEVICE 	"/sys/class/pwm/pwmchip0"
+
+#define BASE_RATE 		1000
+#define SUBTASK1_RATE 	1		// 1s
+#define SUBTASK2_RATE 	0.01	// 100s
+#define MASS 			0.665
 
 
 
@@ -159,9 +160,14 @@ public:
 	void 	battery_status_poll();
 
 	/**
+	 * Init pwm output device.
+	 */
+	void 	pwm_device_init();
+
+	/**
 	 * Send pwm output.
 	 */
-	void	send_pwm_output(const uint16_t *);
+	void	pwm_device_output(const uint16_t *);
 
 	/**
 	 * Load neural network variable from shared library.
@@ -179,6 +185,8 @@ public:
 	int		position_setpoint_publish();
 
 	int 	actuator_outputs_publish();
+
+	void 	prepare_nn_states();
 	
 	inline void 	calc_rl_pwm_output();
 
@@ -188,7 +196,7 @@ public:
 
 	Vector<float, 4>	*rl_controller(Dcmf, Vector3f, Vector3f, Vector3f);
 
-	void 	write_2_file();
+	// void 	write_2_file();
 
 private:
 	bool	_task_should_exit;		/**< if true, task should exit */
@@ -236,15 +244,17 @@ private:
 	void 	*fHandle;
 	char 	*policy_version;
 
-	Vector<float, 4> 	(*func)(Dcmf &, Vector3f &, Vector3f &, Vector3f &);
+	Vector<float, 18> 	input_states;
+	float 				rotation_array[9];
+	Vector<float, 4> 	(*func)(Vector<float, 18> &);
 
 	Vector<float, 4> 	nn_output;
 	double				pwm_calc_tmp[4] = {0};
 	uint16_t			pwm_output[4] = {0};
 
-	FILE *f = fopen("/home/pi/log_flie", "w");
 
 	void		task_main();
+	Log_buffer 	log_buffer;
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -278,6 +288,7 @@ MulticopterRLControl::MulticopterRLControl() :
 	_velocity.zero();
 	_angular_rate.zero();
 
+	input_states.zero();
 	nn_output.zero();
 }
 
@@ -428,7 +439,19 @@ MulticopterRLControl::status()
 }
 
 void
-MulticopterRLControl::send_pwm_output(const uint16_t *pwm)
+MulticopterRLControl::pwm_device_init()
+{
+	PX4_INFO("Starting PWM output in Navio mode");
+	pwm_out_handle = new linux_pwm_out::NavioSysfsPWMOut(PWM_DEVICE, _max_num_outputs);
+	if (pwm_out_handle->init() != 0) {
+		PX4_ERR("PWM output init failed");
+		delete pwm_out_handle;
+		return;
+	}
+}
+
+void
+MulticopterRLControl::pwm_device_output(const uint16_t *pwm)
 {
 	//TODO: check whether output signal is correct
 	pwm_out_handle->send_output_pwm(pwm, 8);
@@ -508,6 +531,30 @@ MulticopterRLControl::actuator_outputs_publish()
 }
 
 void
+MulticopterRLControl::prepare_nn_states()
+{
+	R.copyToColumnMajor(rotation_array);
+	for (int i = 0; i < 9; ++i)
+	{
+		input_states(i) = rotation_array[i];
+	} 
+
+	for (int i = 9; i < 12; ++i)	{
+		input_states(i) = _angular_rate(i-9) * 0.15f;
+	}
+
+	for (int i = 12; i < 15; ++i)
+	{
+		input_states(i) = _velocity(i-12) * 0.15f;
+	}
+
+	for (int i = 15; i < 18; ++i)
+	{
+		input_states(i) = _position_err(i-15) * 0.5f;
+	}
+}
+
+void
 MulticopterRLControl::load_external_variable()
 {	
 
@@ -535,7 +582,7 @@ MulticopterRLControl::load_external_variable()
 
   	policy_version = (char *)dlsym(fHandle, "file_name");
 
-    func = (Vector<float, 4>(*)(Dcmf &, Vector3f &, Vector3f &, Vector3f &))dlsym(fHandle,"nn_controller");
+    func = (Vector<float, 4>(*)(Vector<float, 18> &))dlsym(fHandle,"nn_controller");
 
     if (!func) {
         warn("cannot load nn_controller");
@@ -605,37 +652,29 @@ MulticopterRLControl::subtask_list()
 	// }
 }
 
-void 
-MulticopterRLControl::write_2_file()
-{
-	while(1){
-		// hrt_abstime time1 = hrt_absolute_time();
-		// hrt_abstime time2;
-	    for (float number = 0; number < 32; number++)
-	    {
-	        fprintf(f, "Number %f", (double)number);
-	    }
-	    fprintf(f, "\n");
+// void 
+// MulticopterRLControl::write_2_file()
+// {
+// 	for (int i = 0; i < 18; ++i)
+// 	{
+// 		log_buffer[i] = input_states(i);
+// 	}
 
-	    // time2 = hrt_absolute_time();
-	    // cout << time2-time1 << endl;
-	    sleep(1);
-	}
+// 	for (int i = 0; i < 4; ++i)
+// 	{
+// 		log_buffer[i+18] = nn_output(i);
+// 	}
 
-}
+// 	fwrite(log_buffer, sizeof(float), 22, fp);
+
+// }
 
 void
 MulticopterRLControl::task_main()
 {
 	/* init pwm output*/
-	// _perf_control_latency = perf_alloc(PC_ELAPSED, "linux_pwm_out control latency");
-	PX4_INFO("Starting PWM output in Navio mode");
-	pwm_out_handle = new linux_pwm_out::NavioSysfsPWMOut(PWM_DEVICE, _max_num_outputs);
-	if (pwm_out_handle->init() != 0) {
-		PX4_ERR("PWM output init failed");
-		delete pwm_out_handle;
-		return;
-	}
+	pwm_device_init();
+
 
 	_input_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -653,8 +692,6 @@ MulticopterRLControl::task_main()
 
 	load_external_variable();
 
-	thread 	write_thread([this] { write_2_file(); });
-	write_thread.join();
 
 
 	// FILE *f = fopen("/home/pi/log_flie", "w");
@@ -662,7 +699,7 @@ MulticopterRLControl::task_main()
  //    int written = 0;
  //    char *buf = (char *)malloc(100000);
  //    setbuffer(f, buf, 100000);
-			#define DEBUG
+			// #define DEBUG
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {.fd = _vehicle_attitude_sub,	.events = POLLIN};
@@ -674,7 +711,7 @@ MulticopterRLControl::task_main()
 
 		if (pret < 0) {
 			/* this is seriously bad - should be an emergency */
-			PX4_ERR("ERROR return value from poll(): %d", pret);
+			// PX4_ERR("ERROR return value from poll(): %d", pret);
 		} else {
 
 			input_rc_poll();
@@ -685,20 +722,14 @@ MulticopterRLControl::task_main()
 			subtask_list();
 
 			now = hrt_absolute_time();
-			#ifdef DEBUG
-			// warn("one second");
-			#endif
-			// warn("%s", policy_version);
-
-			update_inputs();
 
 			_position_err = _position - _position_err;
-			nn_output = func(R, _position_err, _velocity, _angular_rate);
+			prepare_nn_states();
+			nn_output = func(input_states);
 
-			if (armed == false && preheat == false)
+			if (preheat == false)
 			{
 				calc_preheat_pwm_output();
-				calc_rl_pwm_output();
 			}
 			else if (armed == false && preheat == true)
 			{
@@ -709,23 +740,9 @@ MulticopterRLControl::task_main()
 				calc_rl_pwm_output();
 			}
 
-			send_pwm_output(pwm_output);
-
-			// #ifdef DEBUG
-			// for (int i = 0; i < 4; ++i)
-			// {
-			// 	std::cout << nn_output(i) << std::endl;
-			// }
-			// // std::cout << nn_output(0) << std::endl;
-			// #endif
-
+			pwm_device_output(pwm_output);
+			
 			subtask_list();
-
-			#ifdef DEBUG
-			hrt_abstime end_time = hrt_absolute_time();
-			warn("takes %dus", (uint)(end_time-now));
-			#endif
-
 
 		}
 	}

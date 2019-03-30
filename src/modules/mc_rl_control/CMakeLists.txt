@@ -39,6 +39,7 @@ px4_add_module(
 #		-std=c++0x -pthread
 	SRCS
 		px4_rl_control.cpp
+		log_buffer.cpp
 	DEPENDS
 		git_ecl
 		ecl_geo
