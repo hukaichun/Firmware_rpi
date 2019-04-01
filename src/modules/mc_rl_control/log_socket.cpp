@@ -31,6 +31,7 @@ public:
 	int 	socket_init();
 	void 	trans_data();
 	void	store(const Vector<float, 18> &states, const Vector<float, 4> &nn_output);
+	void 	reconnect();
 
 private:
 	int on = 1;
@@ -38,6 +39,7 @@ private:
 	int server_socket = -1;
 	sockaddr_in serv_addr;
 	sockaddr_in clin_addr;
+	socklen_t client_addr_size = sizeof(clin_addr);
 	int client_socket = -1;
 
 	float 	buffer[DATA_LEN*BUFFER_SIZE + 1];
@@ -93,33 +95,34 @@ Log_socket::socket_init()
 
 	listen(server_socket, 20);
 
-	socklen_t client_addr_size = sizeof(clin_addr);
 	cout << "Waiting for client connect" << endl;
-	client_socket = accept(server_socket, (struct sockaddr*)&clin_addr, &client_addr_size);
+	// client_socket = accept(server_socket, (struct sockaddr*)&clin_addr, &client_addr_size);
+	thread reconnect_thread = thread(&Log_socket::reconnect, this);
+	reconnect_thread.join();	
 
 	return 1;
 }
 
 void
+Log_socket::reconnect()
+{
+	client_socket = accept(server_socket, (struct sockaddr*)&clin_addr, &client_addr_size);
+	thread reconnect_thread = thread(&Log_socket::reconnect, this);
+	reconnect_thread.detach();	
+}
+
+void
 Log_socket::trans_data()
 {
-	write(client_socket, buffer, sizeof(buffer));
-	cout << "states send" << endl;
-	// float test[3] = {1.1, 2.2, 3.3};
-	// write(client_socket, test, sizeof(buffer));
-
+		write(client_socket, buffer, sizeof(buffer));
+		cout << "states send" << endl;
 }
 
 void
 Log_socket::store(const Vector<float, 18> &states, 
 					const Vector<float, 4> &nn_output)
 {
-	char heart_beat[1] = {};
-
-	read(client_socket, heart_beat, sizeof(heart_beat));
-	if (heart_beat[0] == 'b')
-		cout << "alive" << endl;
-			
+	
 	buffer[counter*DATA_LEN] = 9487;	// Seperate each step by 9487
 
 	for (int i = 0; i < 18; ++i)
