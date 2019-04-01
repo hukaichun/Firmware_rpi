@@ -35,14 +35,15 @@ public:
 
 private:
 	int on = 1;
-	int socket_state = -1;
 	int server_socket = -1;
 	sockaddr_in serv_addr;
 	sockaddr_in clin_addr;
 	socklen_t client_addr_size = sizeof(clin_addr);
 	int client_socket = -1;
+	struct timeval timeout{.tv_sec = 1, .tv_usec = 0};
 
 	float 	buffer[DATA_LEN*BUFFER_SIZE + 1];
+	float 	socket_buffer[DATA_LEN*BUFFER_SIZE + 1];
 	int 	counter = 0;
 	thread 	socket_thread;
 	bool 	should_send = false;
@@ -82,9 +83,13 @@ Log_socket::socket_init()
 	serv_addr.sin_addr.s_addr = inet_addr(IP);
 	serv_addr.sin_port = htons(PORT);
 
-	socket_state = setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-	socket_state = bind(server_socket, (sockaddr*)& serv_addr, sizeof(serv_addr));
-	if(socket_state != 0)
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
+        cout << "setsockopt REUSEADDR failed" << endl;
+
+    if (setsockopt(server_socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+        cout << "setsockopt SO_SNDTIMEO failed" << endl;
+
+	if (bind(server_socket, (sockaddr*)& serv_addr, sizeof(serv_addr)) != 0)
 	{
 		cout << "binding fail" << endl;
 		return -1;
@@ -93,7 +98,6 @@ Log_socket::socket_init()
 	listen(server_socket, 20);
 
 	cout << "Waiting for client connect" << endl;
-	// client_socket = accept(server_socket, (struct sockaddr*)&clin_addr, &client_addr_size);
 	thread reconnect_thread = thread(&Log_socket::reconnect, this);
 	reconnect_thread.detach();	
 
@@ -111,8 +115,8 @@ Log_socket::reconnect()
 void
 Log_socket::trans_data()
 {
-	write(client_socket, buffer, sizeof(buffer));
-// #define DEGUB
+	write(client_socket, socket_buffer, sizeof(socket_buffer));
+#define DEGUB
 #ifdef DEGUB
 	cout << "states send" << endl;
 #endif
@@ -138,6 +142,10 @@ Log_socket::store(const Vector<float, 18> &states,
 	if (counter == BUFFER_SIZE-1)
 	{
 		buffer[DATA_LEN*BUFFER_SIZE] = 666;
+		for (int i = 0; i < DATA_LEN*BUFFER_SIZE+1; ++i)
+		{
+			socket_buffer[i] = buffer[i];
+		}
 		socket_thread = thread(&Log_socket::trans_data, this);
 		socket_thread.detach();
 		counter = 0;
