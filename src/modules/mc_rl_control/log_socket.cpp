@@ -50,10 +50,7 @@ private:
 
 Log_socket::Log_socket()
 {
-	if(socket_init()){
-		// socket_thread = thread(&Log_socket::trans_data, this);
-		// socket_thread.detach();
-	} else {
+	if(socket_init()<0){
 		cout << "create socket fail" << endl;
 	}
 }
@@ -98,7 +95,7 @@ Log_socket::socket_init()
 	cout << "Waiting for client connect" << endl;
 	// client_socket = accept(server_socket, (struct sockaddr*)&clin_addr, &client_addr_size);
 	thread reconnect_thread = thread(&Log_socket::reconnect, this);
-	reconnect_thread.join();	
+	reconnect_thread.detach();	
 
 	return 1;
 }
@@ -114,8 +111,11 @@ Log_socket::reconnect()
 void
 Log_socket::trans_data()
 {
-		write(client_socket, buffer, sizeof(buffer));
-		cout << "states send" << endl;
+	write(client_socket, buffer, sizeof(buffer));
+// #define DEGUB
+#ifdef DEGUB
+	cout << "states send" << endl;
+#endif
 }
 
 void
