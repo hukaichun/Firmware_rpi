@@ -91,7 +91,7 @@
 #include <matrix/math.hpp>
 #include <matrix/matrix/math.hpp>
 
-#include "log_buffer.cpp"
+#include "log_socket.cpp"
 
 
 
@@ -177,12 +177,12 @@ public:
 	/**
 	 * Publish vehicle arm status.
 	 */
-	int		arm_publish();
+	int	arm_publish();
 
 	/**
 	 * Publish vehicle setpoint.
 	 */
-	int		position_setpoint_publish();
+	int	position_setpoint_publish();
 
 	int 	actuator_outputs_publish();
 
@@ -254,7 +254,7 @@ private:
 
 
 	void		task_main();
-	Log_buffer 	log_buffer;
+	Log_socket 	log_socket;
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -697,7 +697,7 @@ MulticopterRLControl::task_main()
 
 			_position_err = _position - _position_err;
 			prepare_nn_states();
-			log_buffer.store(input_states, nn_output);
+			log_socket.store(input_states, nn_output);
 			nn_output = func(input_states);
 
 			if (preheat == false)
