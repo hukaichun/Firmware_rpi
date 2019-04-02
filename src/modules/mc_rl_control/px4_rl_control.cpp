@@ -686,7 +686,7 @@ MulticopterRLControl::task_main()
 			/* this is seriously bad - should be an emergency */
 			// PX4_ERR("ERROR return value from poll(): %d", pret);
 		} else {
-
+			now = hrt_absolute_time();
 			input_rc_poll();
 			vehicle_attitude_poll();
 			vehicle_local_position_poll();
@@ -719,6 +719,9 @@ MulticopterRLControl::task_main()
 			arm_publish();
 			position_setpoint_publish();
 			actuator_outputs_publish();
+
+			if (hrt_absolute_time() - now > 100)
+				cout << hrt_absolute_time() - now << endl;
 
 		}
 	}

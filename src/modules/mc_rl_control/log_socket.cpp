@@ -1,3 +1,6 @@
+#include <px4_log.h>
+#include <systemlib/err.h>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -15,7 +18,7 @@
 #define PORT 		8787
 #define IP		"192.168.1.159"
 
-#define BUFFER_SIZE 	1000
+#define BUFFER_SIZE 	10000
 #define DATA_LEN 	23
 
 using namespace std;
@@ -52,7 +55,7 @@ private:
 Log_socket::Log_socket()
 {
 	if(socket_init()<0){
-		cout << "create socket fail" << endl;
+		warn("create socket fail");
 	}
 }
 
@@ -70,11 +73,11 @@ Log_socket::socket_init()
 	server_socket = socket(TRANSDOMAIN, TYPE, 0);
 	if (server_socket == -1)
 	{
-		cout << "failed socket server" << endl;
+		warn("failed socket server");
 		return -1;
 	}else
 	{
-		cout << "server_socket : " << server_socket << endl; 
+		PX4_INFO("server_socket : %d", server_socket); 
 	}
 
 
@@ -84,20 +87,19 @@ Log_socket::socket_init()
 	serv_addr.sin_port = htons(PORT);
 
     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
-        cout << "setsockopt REUSEADDR failed" << endl;
+        warn("setsockopt REUSEADDR failed");
 
     if (setsockopt(server_socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
-        cout << "setsockopt SO_SNDTIMEO failed" << endl;
+        warn("setsockopt SO_SNDTIMEO failed");
 
 	if (bind(server_socket, (sockaddr*)& serv_addr, sizeof(serv_addr)) != 0)
 	{
-		cout << "binding fail" << endl;
+		warn("binding fail");
 		return -1;
 	}
 
 	listen(server_socket, 20);
 
-	cout << "Waiting for client connect" << endl;
 	thread reconnect_thread = thread(&Log_socket::reconnect, this);
 	reconnect_thread.detach();	
 
@@ -108,6 +110,7 @@ void
 Log_socket::reconnect()
 {
 	client_socket = accept(server_socket, (struct sockaddr*)&clin_addr, &client_addr_size);
+	PX4_INFO("client connected");
 	thread reconnect_thread = thread(&Log_socket::reconnect, this);
 	reconnect_thread.detach();	
 }
@@ -115,10 +118,14 @@ Log_socket::reconnect()
 void
 Log_socket::trans_data()
 {
+	for (int i = 0; i < DATA_LEN*BUFFER_SIZE+1; ++i)
+	{
+		socket_buffer[i] = buffer[i];
+	}
 	write(client_socket, socket_buffer, sizeof(socket_buffer));
 #define DEGUB
 #ifdef DEGUB
-	cout << "states send" << endl;
+	PX4_INFO("states send");
 #endif
 }
 
@@ -142,10 +149,7 @@ Log_socket::store(const Vector<float, 18> &states,
 	if (counter == BUFFER_SIZE-1)
 	{
 		buffer[DATA_LEN*BUFFER_SIZE] = 666;
-		for (int i = 0; i < DATA_LEN*BUFFER_SIZE+1; ++i)
-		{
-			socket_buffer[i] = buffer[i];
-		}
+
 		socket_thread = thread(&Log_socket::trans_data, this);
 		socket_thread.detach();
 		counter = 0;

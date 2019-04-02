@@ -23,8 +23,12 @@ class drone(object):
 
 		self.queue = Queue.Queue()
 
+		receive_thread = threading.Thread(target = self.put_data)
+		receive_thread.start()
+
 	def __del__(self):
 
+		receive_thread.join()
 		self.sock.close()		
 
 	def put_data(self):
@@ -34,7 +38,7 @@ class drone(object):
 
 		while True:			
 			while True:
-				raw_data = self.sock.recv(92000)
+				raw_data = self.sock.recv(920000)
 
 				num_floats = int(len(raw_data) / 4)
 				format_str = '<' + 'f' * num_floats
@@ -67,14 +71,10 @@ class drone(object):
 
 
 if __name__ == '__main__':
-	pi_drone = drone(ip="140.113.154.156")
-	receive_thread = threading.Thread(target = pi_drone.put_data)
-	receive_thread.start()
-	# receive_thread.join()
-	# time.sleep(10)
+	pi_drone = drone()
+
 	while True:
 		qq = pi_drone.get_data()
 		print(len(qq))
 		time.sleep(4)
-	receive_thread.join()
 
