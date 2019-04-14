@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/led_control.h>
 
 
 #include <parameters/param.h>
@@ -186,6 +187,8 @@ public:
 
 	int 	actuator_outputs_publish();
 
+	int 	led_control_publish();
+
 	void 	prepare_nn_states();
 	
 	inline void 	calc_rl_pwm_output();
@@ -213,7 +216,7 @@ private:
 	orb_advert_t	_armed_pub{nullptr};
 	orb_advert_t	_position_sp_pub{nullptr};
 	orb_advert_t	_actuator_outputs_pub{nullptr};
-
+	orb_advert_t	_led_control_pub{nullptr};
 
 	struct input_rc_s _input_rc{};
 	struct vehicle_attitude_s _vehicle_attitude{};
@@ -222,6 +225,7 @@ private:
 	struct battery_status_s _battery_status{};
 	struct actuator_armed_s _armed{};
 	struct actuator_outputs_s _actuator_outputs{};
+	struct led_control_s _led_control{};
 
 	perf_counter_t	_perf_control_latency = nullptr;
 
@@ -237,7 +241,6 @@ private:
 
 	bool	armed;
 	bool	preheat;
-	bool 	clear_pos_sp_trigger;
 	float	battery_voltage;
 	int 	battery_warning;
 
@@ -252,6 +255,8 @@ private:
 	double				pwm_calc_tmp[4] = {0};
 	uint16_t			pwm_output[4] = {0};
 
+	uint8_t				led_color = led_control_s::COLOR_GREEN;
+	uint8_t				led_mode = led_control_s::MODE_BLINK_NORMAL;
 
 	void		task_main();
 	Log_socket 	log_socket;
@@ -274,11 +279,11 @@ MulticopterRLControl::MulticopterRLControl() :
 	_main_task(-1),
 	_mavlink_log_pub(nullptr),
 	_armed_pub(nullptr),
-	_position_sp_pub{nullptr},
+	_position_sp_pub(nullptr),
+	_led_control_pub(nullptr),
 	R(),
 	armed(false),
 	preheat(false),
-	clear_pos_sp_trigger(false),
 	battery_voltage(12),
 	battery_warning(0)
 {
@@ -353,22 +358,36 @@ MulticopterRLControl::input_rc_poll()
 		vehicle_mode 	= _input_rc.values[6];
 
 		if (vehicle_mode > 1700) {
-			preheat = true;
-			armed 	= true;
-		} else if (vehicle_mode > 1300) {
-			preheat = true;
-			armed 	= false;
-			if (clear_pos_sp_trigger == false){
+			if (preheat != true || armed != true)
+			{
 				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] armed");
+				led_color = led_control_s::COLOR_PURPLE;
+				led_mode = led_control_s::MODE_ON;
+				preheat = true;
+				armed 	= true;
+			}
+			if (battery_voltage < 10.5f)
+			{
+				led_mode = led_control_s::MODE_BLINK_FAST;
+			}
+		} else if (vehicle_mode > 1300) {
+			if (preheat != true || armed != false)
+			{
+				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] preheat");
 				_position_sp.zero();
-				clear_pos_sp_trigger = true;
+				led_color = led_control_s::COLOR_RED;
+				led_mode = led_control_s::MODE_BLINK_FAST;
+				preheat = true;
+				armed 	= false;
 			}
 		} else {
-			preheat = false;
-			armed 	= false;
-			if (clear_pos_sp_trigger == true){
+			if (preheat != false || armed != false)
+			{
 				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] disarmed");
-				clear_pos_sp_trigger = false;
+				led_color = led_control_s::COLOR_GREEN;
+				led_mode = led_control_s::MODE_BLINK_NORMAL;
+				preheat = false;
+				armed 	= false;
 			}
 		}
 
@@ -478,6 +497,31 @@ MulticopterRLControl::arm_publish()
 		}
 	}
 }
+
+int
+MulticopterRLControl::led_control_publish()
+{
+	_led_control.timestamp = hrt_absolute_time();
+	_led_control.led_mask = 0xff;
+	_led_control.color = led_color;
+	_led_control.mode = led_mode;
+
+	// lazily publish _led_control only once available
+	if (_led_control_pub != nullptr) {
+		return orb_publish(ORB_ID(led_control), _led_control_pub, &_led_control);
+
+	} else {
+		_led_control_pub = orb_advertise(ORB_ID(led_control), &_led_control);
+
+		if (_led_control_pub != nullptr) {
+			return OK;
+
+		} else {
+			return -1;
+		}
+	}
+}
+
 
 int
 MulticopterRLControl::vehicle_local_position_setpoint_publish()
@@ -629,11 +673,12 @@ void
 MulticopterRLControl::subtask_list()
 {
 	subtask_counter[0]++;
-	if (subtask_counter[0] > 1e6/SUBTASK1_RATE)	
+	if (subtask_counter[0] > 10)	
 	{
-		// arm_publish();
-		// position_setpoint_publish();
-		// actuator_outputs_publish();
+		arm_publish();
+		vehicle_local_position_setpoint_publish();
+		actuator_outputs_publish();
+		led_control_publish();
 		subtask_counter[0] = 0;
 	}
 
@@ -691,9 +736,6 @@ MulticopterRLControl::task_main()
 			vehicle_attitude_poll();
 			vehicle_local_position_poll();
 			battery_status_poll();
-			// subtask_list();
-
-			// now = hrt_absolute_time();
 
 			_position_err = _position - _position_err;
 			prepare_nn_states();
@@ -716,9 +758,9 @@ MulticopterRLControl::task_main()
 			pwm_device_output(pwm_output);
 			
 			subtask_list();
-			arm_publish();
-			vehicle_local_position_setpoint_publish();
-			actuator_outputs_publish();
+			// arm_publish();
+			// vehicle_local_position_setpoint_publish();
+			// actuator_outputs_publish();
 			
 		}
 	}
