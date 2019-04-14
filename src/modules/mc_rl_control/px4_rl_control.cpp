@@ -77,7 +77,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/position_setpoint.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/actuator_outputs.h>
 
@@ -182,7 +182,7 @@ public:
 	/**
 	 * Publish vehicle setpoint.
 	 */
-	int	position_setpoint_publish();
+	int	vehicle_local_position_setpoint_publish();
 
 	int 	actuator_outputs_publish();
 
@@ -218,7 +218,7 @@ private:
 	struct input_rc_s _input_rc{};
 	struct vehicle_attitude_s _vehicle_attitude{};
 	struct vehicle_local_position_s _vehicle_local_position{};
-	struct position_setpoint_s _position_setpoint{};
+	struct vehicle_local_position_setpoint_s _vehicle_local_position_setpoint{};
 	struct battery_status_s _battery_status{};
 	struct actuator_armed_s _armed{};
 	struct actuator_outputs_s _actuator_outputs{};
@@ -383,7 +383,7 @@ MulticopterRLControl::input_rc_poll()
 			}
 		}
 
-		_position_sp += tmp/1000;
+		_position_sp += tmp/10000;
 	}
 
 }
@@ -480,19 +480,19 @@ MulticopterRLControl::arm_publish()
 }
 
 int
-MulticopterRLControl::position_setpoint_publish()
+MulticopterRLControl::vehicle_local_position_setpoint_publish()
 {
-	_position_setpoint.timestamp = hrt_absolute_time();
-	_position_setpoint.x = _position_sp(0);
-	_position_setpoint.y = _position_sp(1);
-	_position_setpoint.z = _position_sp(2);
+	_vehicle_local_position_setpoint.timestamp = hrt_absolute_time();
+	_vehicle_local_position_setpoint.x = -_position_sp(1);
+	_vehicle_local_position_setpoint.y = _position_sp(0);
+	_vehicle_local_position_setpoint.z = -_position_sp(2);
 
 	// lazily publish _armed only once available
 	if (_position_sp_pub != nullptr) {
-		return orb_publish(ORB_ID(position_setpoint), _position_sp_pub, &_position_setpoint);
+		return orb_publish(ORB_ID(vehicle_local_position_setpoint), _position_sp_pub, &_vehicle_local_position_setpoint);
 
 	} else {
-		_position_sp_pub = orb_advertise(ORB_ID(position_setpoint), &_position_setpoint);
+		_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_vehicle_local_position_setpoint);
 
 		if (_position_sp_pub != nullptr) {
 			return OK;
@@ -664,7 +664,7 @@ MulticopterRLControl::task_main()
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
 	_armed_pub = orb_advertise(ORB_ID(actuator_armed), &_armed);
-	_position_sp_pub = orb_advertise(ORB_ID(position_setpoint), &_position_setpoint);
+	_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_vehicle_local_position_setpoint);
 	_actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
 
 	orb_set_interval(_input_rc_sub, 100);			//set update rate 10Hz
@@ -717,7 +717,7 @@ MulticopterRLControl::task_main()
 			
 			subtask_list();
 			arm_publish();
-			position_setpoint_publish();
+			vehicle_local_position_setpoint_publish();
 			actuator_outputs_publish();
 			
 		}

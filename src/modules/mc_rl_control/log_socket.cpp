@@ -123,7 +123,7 @@ Log_socket::trans_data()
 		socket_buffer[i] = buffer[i];
 	}
 	write(client_socket, socket_buffer, sizeof(socket_buffer));
-#define DEGUB
+// #define DEGUB
 #ifdef DEGUB
 	PX4_INFO("states send");
 #endif
