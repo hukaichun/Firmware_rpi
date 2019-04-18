@@ -73,7 +73,7 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -213,7 +213,7 @@ private:
 	int _battery_status_sub = -1;
 
 	orb_advert_t	_mavlink_log_pub{nullptr};
-	orb_advert_t	_armed_pub{nullptr};
+	orb_advert_t	_vehicle_status_pub{nullptr};
 	orb_advert_t	_position_sp_pub{nullptr};
 	orb_advert_t	_actuator_outputs_pub{nullptr};
 	orb_advert_t	_led_control_pub{nullptr};
@@ -223,7 +223,7 @@ private:
 	struct vehicle_local_position_s _vehicle_local_position{};
 	struct vehicle_local_position_setpoint_s _vehicle_local_position_setpoint{};
 	struct battery_status_s _battery_status{};
-	struct actuator_armed_s _armed{};
+	struct vehicle_status_s _vehicle_status{};
 	struct actuator_outputs_s _actuator_outputs{};
 	struct led_control_s _led_control{};
 
@@ -239,8 +239,7 @@ private:
 	Vector3f _velocity;
 	Vector3f _angular_rate;
 
-	bool	armed;
-	bool	preheat;
+	uint8_t	armed;
 	float	battery_voltage;
 	int 	battery_warning;
 
@@ -278,12 +277,11 @@ MulticopterRLControl::MulticopterRLControl() :
 	_task_should_exit(false),
 	_main_task(-1),
 	_mavlink_log_pub(nullptr),
-	_armed_pub(nullptr),
+	_vehicle_status_pub(nullptr),
 	_position_sp_pub(nullptr),
 	_led_control_pub(nullptr),
 	R(),
-	armed(false),
-	preheat(false),
+	armed(vehicle_status_s::ARMING_STATE_INIT),
 	battery_voltage(12),
 	battery_warning(0)
 {
@@ -358,36 +356,33 @@ MulticopterRLControl::input_rc_poll()
 		vehicle_mode 	= _input_rc.values[6];
 
 		if (vehicle_mode > 1700) {
-			if (preheat != true || armed != true)
+			if (armed != vehicle_status_s::ARMING_STATE_ARMED)
 			{
 				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] armed");
-				led_color = led_control_s::COLOR_PURPLE;
-				led_mode = led_control_s::MODE_ON;
-				preheat = true;
-				armed 	= true;
+				led_color	= led_control_s::COLOR_PURPLE;
+				led_mode	= led_control_s::MODE_ON;
+				armed		= vehicle_status_s::ARMING_STATE_ARMED;
 			}
 			if (battery_voltage < 10.5f)
 			{
-				led_mode = led_control_s::MODE_BLINK_FAST;
+				led_mode	= led_control_s::MODE_BLINK_FAST;
 			}
 		} else if (vehicle_mode > 1300) {
-			if (preheat != true || armed != false)
+			if (armed != vehicle_status_s::ARMING_STATE_STANDBY)
 			{
-				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] preheat");
+				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] standby");
 				_position_sp.zero();
-				led_color = led_control_s::COLOR_RED;
-				led_mode = led_control_s::MODE_BLINK_FAST;
-				preheat = true;
-				armed 	= false;
+				led_color	= led_control_s::COLOR_RED;
+				led_mode	= led_control_s::MODE_BLINK_FAST;
+				armed		= vehicle_status_s::ARMING_STATE_STANDBY;
 			}
 		} else {
-			if (preheat != false || armed != false)
+			if (armed != vehicle_status_s::ARMING_STATE_INIT)
 			{
 				mavlink_log_info(&_mavlink_log_pub, "[mc_rl_control] disarmed");
-				led_color = led_control_s::COLOR_GREEN;
-				led_mode = led_control_s::MODE_BLINK_NORMAL;
-				preheat = false;
-				armed 	= false;
+				led_color	= led_control_s::COLOR_GREEN;
+				led_mode	= led_control_s::MODE_BLINK_NORMAL;
+				armed		= vehicle_status_s::ARMING_STATE_INIT;
 			}
 		}
 
@@ -479,17 +474,17 @@ MulticopterRLControl::pwm_device_output(const uint16_t *pwm)
 int
 MulticopterRLControl::arm_publish()
 {
-	_armed.timestamp = hrt_absolute_time();
-	_armed.armed = preheat;
+	_vehicle_status.timestamp = hrt_absolute_time();
+	_vehicle_status.arming_state = armed;
 
-	// lazily publish _armed only once available
-	if (_armed_pub != nullptr) {
-		return orb_publish(ORB_ID(actuator_armed), _armed_pub, &_armed);
+	// lazily publish _vehicle_status only once available
+	if (_vehicle_status_pub != nullptr) {
+		return orb_publish(ORB_ID(vehicle_status), _vehicle_status_pub, &_vehicle_status);
 
 	} else {
-		_armed_pub = orb_advertise(ORB_ID(actuator_armed), &_armed);
+		_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &_vehicle_status);
 
-		if (_armed_pub != nullptr) {
+		if (_vehicle_status_pub != nullptr) {
 			return OK;
 
 		} else {
@@ -531,7 +526,7 @@ MulticopterRLControl::vehicle_local_position_setpoint_publish()
 	_vehicle_local_position_setpoint.y = _position_sp(0);
 	_vehicle_local_position_setpoint.z = -_position_sp(2);
 
-	// lazily publish _armed only once available
+	// lazily publish _vehicle_status only once available
 	if (_position_sp_pub != nullptr) {
 		return orb_publish(ORB_ID(vehicle_local_position_setpoint), _position_sp_pub, &_vehicle_local_position_setpoint);
 
@@ -558,7 +553,7 @@ MulticopterRLControl::actuator_outputs_publish()
     /* now publish to actuator_outputs in case anyone wants to know... */
     _actuator_outputs.timestamp = hrt_absolute_time();
 
-    // lazily publish _armed only once available
+    // lazily publish _vehicle_status only once available
 	if (_position_sp_pub != nullptr) {
 		return orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &_actuator_outputs);
 
@@ -708,7 +703,7 @@ MulticopterRLControl::task_main()
 	_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
-	_armed_pub = orb_advertise(ORB_ID(actuator_armed), &_armed);
+	_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &_vehicle_status);
 	_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_vehicle_local_position_setpoint);
 	_actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
 
@@ -741,16 +736,15 @@ MulticopterRLControl::task_main()
 			prepare_nn_states();
 			log_socket.store(input_states, nn_output);
 			nn_output = func(input_states);
-
-			if (preheat == false)
+			if (armed == vehicle_status_s::ARMING_STATE_INIT)
 			{
 				calc_preheat_pwm_output();
 			}
-			else if (armed == false && preheat == true)
+			else if (armed == vehicle_status_s::ARMING_STATE_STANDBY)
 			{
 				calc_preheat_pwm_output();
 			}
-			else if (armed == true)
+			else if (armed == vehicle_status_s::ARMING_STATE_ARMED)
 			{
 				calc_rl_pwm_output();
 			}
