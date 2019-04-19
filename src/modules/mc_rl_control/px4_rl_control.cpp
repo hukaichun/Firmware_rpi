@@ -207,7 +207,7 @@ private:
 	int 	subtask_counter[3] = {0};
 	hrt_abstime now;
 
-	int	_input_rc_sub = -1;
+	int _input_rc_sub = -1;
 	int _vehicle_attitude_sub = -1;
 	int _vehicle_local_position_sub = -1;
 	int _battery_status_sub = -1;
@@ -719,7 +719,7 @@ MulticopterRLControl::task_main()
 
 	while(!_task_should_exit){
 
-		/* wait for up to 100ms for data */
+		/* wait for up to 10ms for data */
 		int pret = px4_poll(&poll_fds, 1, 10);
 
 		if (pret < 0) {

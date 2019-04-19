@@ -75,6 +75,7 @@ if __name__ == '__main__':
 
 	while True:
 		qq = pi_drone.get_data()
-		print(len(qq))
+		if len(qq) != 0:
+			print(qq[0])
 		time.sleep(4)
 

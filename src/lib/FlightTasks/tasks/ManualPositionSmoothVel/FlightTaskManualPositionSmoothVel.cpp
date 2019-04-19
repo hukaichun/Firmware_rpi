@@ -254,4 +254,5 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	_position_setpoint(0) = _position_setpoint_xy_locked(0);
 	_position_setpoint(1) = _position_setpoint_xy_locked(1);
 	_position_setpoint(2) = _position_setpoint_z_locked;
+	printf("%f\n", (double)_position_setpoint(0));
 }
