@@ -26,7 +26,7 @@ the config file is a startup script for loading modules in filght program **pxh*
 
 start RL controller by start test.config file
 ```gherkin=
-sudo ./bin/px4 -s test.config
+sudo emlid_navio2_cross/bin/px4 -s test.config
 ```
 
 Sub-Folders
