@@ -350,8 +350,8 @@ MulticopterRLControl::input_rc_poll()
 		int vehicle_mode;
 
 		orb_copy(ORB_ID(input_rc), _input_rc_sub, &_input_rc);
-		tmp(0) 			= _input_rc.values[3];
-		tmp(1) 			= _input_rc.values[1];
+		tmp(0) 			= _input_rc.values[1];
+		tmp(1) 			= _input_rc.values[3];
 		tmp(2) 			= _input_rc.values[2];
 		vehicle_mode 	= _input_rc.values[6];
 
@@ -397,7 +397,9 @@ MulticopterRLControl::input_rc_poll()
 			}
 		}
 
-		_position_sp += tmp/10000;
+		_position_sp(0) -= tmp(0)/10000;
+		_position_sp(1) += tmp(1)/10000;
+		_position_sp(2) -= tmp(2)/10000;
 	}
 
 }
@@ -522,9 +524,9 @@ int
 MulticopterRLControl::vehicle_local_position_setpoint_publish()
 {
 	_vehicle_local_position_setpoint.timestamp = hrt_absolute_time();
-	_vehicle_local_position_setpoint.x = -_position_sp(1);
-	_vehicle_local_position_setpoint.y = _position_sp(0);
-	_vehicle_local_position_setpoint.z = -_position_sp(2);
+	_vehicle_local_position_setpoint.x = _position_sp(0);
+	_vehicle_local_position_setpoint.y = _position_sp(1);
+	_vehicle_local_position_setpoint.z = _position_sp(2);
 
 	// lazily publish _vehicle_status only once available
 	if (_position_sp_pub != nullptr) {
@@ -549,12 +551,13 @@ MulticopterRLControl::actuator_outputs_publish()
     _actuator_outputs.output[1] = pwm_output[1];
     _actuator_outputs.output[2] = pwm_output[2];
     _actuator_outputs.output[3] = pwm_output[3];
+    _actuator_outputs.noutputs = 4;
 
     /* now publish to actuator_outputs in case anyone wants to know... */
     _actuator_outputs.timestamp = hrt_absolute_time();
 
     // lazily publish _vehicle_status only once available
-	if (_position_sp_pub != nullptr) {
+	if (_actuator_outputs_pub != nullptr) {
 		return orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &_actuator_outputs);
 
 	} else {
@@ -732,7 +735,7 @@ MulticopterRLControl::task_main()
 			vehicle_local_position_poll();
 			battery_status_poll();
 
-			_position_err = _position - _position_err;
+			_position_err = _position - _position_sp;
 			prepare_nn_states();
 			log_socket.store(input_states, nn_output);
 			nn_output = func(input_states);
