@@ -581,18 +581,19 @@ MulticopterRLControl::prepare_nn_states()
 		input_states(i) = rotation_array[i];
 	} 
 
-	for (int i = 9; i < 12; ++i)	{
-		input_states(i) = _angular_rate(i-9) * 0.15f;
+	for (int i = 9; i < 12; ++i)
+	{
+		input_states(i) = _position_err(i-9) * 0.5f;
 	}
 
 	for (int i = 12; i < 15; ++i)
 	{
-		input_states(i) = _velocity(i-12) * 0.15f;
+		input_states(i) = _angular_rate(i-12) * 0.15f;
 	}
 
 	for (int i = 15; i < 18; ++i)
 	{
-		input_states(i) = _position_err(i-15) * 0.5f;
+		input_states(i) = _velocity(i-15) * 0.15f;
 	}
 }
 
