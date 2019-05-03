@@ -102,7 +102,7 @@
 #define BASE_RATE 		1000
 #define SUBTASK1_RATE 	1		// 1s
 #define SUBTASK2_RATE 	0.1	// 100s
-#define MASS 			0.665
+#define MASS 			0.762
 
 
 
