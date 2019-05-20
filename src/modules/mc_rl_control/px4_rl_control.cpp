@@ -711,10 +711,10 @@ MulticopterRLControl::task_main()
 	_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_vehicle_local_position_setpoint);
 	_actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
 
-	orb_set_interval(_input_rc_sub, 100);			//set update rate 10Hz
+	// orb_set_interval(_input_rc_sub, 100);			//set update rate 10Hz
 	// orb_set_interval(_vehicle_attitude_sub, 5);	// Pull loop uprate to maximum speed which is equal to uorb publish speed
-	orb_set_interval(_vehicle_local_position_sub, 10);
-	orb_set_interval(_battery_status_sub, 200);
+	// orb_set_interval(_vehicle_local_position_sub, 10);
+	// orb_set_interval(_battery_status_sub, 200);
 
 	load_external_variable();
 
