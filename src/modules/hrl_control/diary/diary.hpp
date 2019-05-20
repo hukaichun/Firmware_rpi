@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <vector>
+#include <map>
 
 #include "hrl_mavlink/control_info/control_info.hpp"
 #include "hrl_socket/server.hpp"
@@ -19,20 +20,18 @@ private:
 
 	uint8_t _system_id;
 
-	std::vector<unsigned char> msg2buff();
-
 
 public:
 	
 	
 
 	size_t store(uint64_t t,
-		     std::array<float,4>& q, 
-		     std::array<float,3>& p, 
-		     std::array<float,3>& w, 
-		     std::array<float,3>& v,
-		     std::array<float,3>& hc,
-		     std::array<float,4>& lc);
+		     const std::array<float,4>& q, 
+		     const std::array<float,3>& p, 
+		     const std::array<float,3>& w, 
+		     const std::array<float,3>& v,
+		     const std::array<float,3>& hc,
+		     const std::array<float,4>& lc);
 
 	Diary() = delete;
 	Diary(int port, uint8_t sys_id);

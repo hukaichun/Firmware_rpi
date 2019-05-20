@@ -28,6 +28,8 @@ int hrl_control_main(int argc, char *argv[])
 		                                      the_handle_of_sanding_log_info, 
 		                                      the_handle_of_all_uORB_topics);
 
+	the_controller.main_loop();
+
     	return OK;
 }
 

@@ -13,7 +13,7 @@ template<typename OUTPUT, typename INPUT>
 class NN
 {
 
-typedef OUTPUT(*nn_ptr)(INPUT);
+using nn_ptr = OUTPUT(*)(INPUT);
 
 private:
 	struct {
@@ -88,8 +88,11 @@ template<int OBS_DIM, int H_LEVLE_OUT_DIM>
 class Cerebellum
 {
 private:
-	NN<std::array<float, 4>, std::array<float, OBS_DIM>>               low_level;
-	NN<std::array<float, H_LEVLE_OUT_DIM>, std::array<float, OBS_DIM>> high_level;
+	using low_level_nn = NN<std::array<float, 4>, const std::array<float, OBS_DIM>&>;
+	using high_level_nn = NN<std::array<float, H_LEVLE_OUT_DIM>, const std::array<float, OBS_DIM>&>;
+	
+	low_level_nn	_low_level;
+	high_level_nn   _high_level;
 
 public:
 
@@ -98,7 +101,7 @@ public:
 	
 	Cerebellum() = delete;
 	Cerebellum(const char* dir_H, const char* dir_L)
-	:low_level(dir_L),high_level(dir_H),_state_buff(),_delta_p() {
+	:_low_level(dir_L),_high_level(dir_H),_state_buff(),_delta_p() {
 		for(auto &v: _state_buff) v=0;
 		for(auto &v: _delta_p) v=0;
 	}
@@ -122,12 +125,12 @@ public:
 		for(int i=0; i<3; ++i)
 			_state_buff[i+15] = velocity[i];
 
-		_delta_p = high_level(_state_buff);
+		_delta_p = _high_level(_state_buff);
 
 		for(int i=0; i<3; ++i)
 			_state_buff[i+9] += _delta_p[i];
 
-		return low_level(_state_buff);
+		return _low_level(_state_buff);
 
 	}
 };

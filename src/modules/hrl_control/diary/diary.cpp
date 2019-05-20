@@ -10,7 +10,7 @@ std::vector<unsigned char> msg2buff(
 	mavlink::mavlink_message_t& msg, 
 	uint8_t system_id, 
 	uint8_t component_id,
-	const uint8_t crc_extra){
+	const uint8_t crc_extra) {
 
 	static uint8_t count = 0;
 
@@ -56,12 +56,12 @@ Diary::Diary(int port, uint8_t sys_id)
 
 
 size_t Diary::store(uint64_t t,
-		     std::array<float,4>& q, 
-		     std::array<float,3>& p, 
-		     std::array<float,3>& w, 
-		     std::array<float,3>& v,
-		     std::array<float,3>& hc,
-		     std::array<float,4>& lc) {
+		    const std::array<float,4>& q, 
+		    const std::array<float,3>& p, 
+		    const std::array<float,3>& w, 
+		    const std::array<float,3>& v,
+		    const std::array<float,3>& hc,
+		    const std::array<float,4>& lc) {
 	
 	_control_info.timestamp = t;
 	memcpy(_control_info.quaternion.data(),       q.data(),  sizeof(float)*q.size());
