@@ -12,7 +12,7 @@ public:
 	
 	// void status();
 	// void stop();
-	HierarchicalController(Cerebellum&, Diary&, uORBInterface&);
+	HierarchicalController(Cerebellum<18,3>&, Diary&, uORBInterface&);
 	
 private: 
 
@@ -20,9 +20,9 @@ private:
 
 	void main_loop();
 
-	Cerebellum&     _policy;
-	Diary&          _log;
-	uORBInterface&  _uORB;
+	Cerebellum<18,3>&     _policy;
+	Diary&                _log;
+	uORBInterface&        _uORB;
 
 	bool _task_should_stop;
 };

@@ -14,7 +14,7 @@ from ...generator.mavcrc import x25crc
 import hashlib
 
 WIRE_PROTOCOL_VERSION = '2.0'
-DIALECT = 'diary'
+DIALECT = 'hrl_mavlink'
 
 PROTOCOL_MARKER_V1 = 0xFE
 PROTOCOL_MARKER_V2 = 0xFD
@@ -225,6 +225,7 @@ enums = {}
 # message IDs
 MAVLINK_MSG_ID_BAD_DATA = -1
 MAVLINK_MSG_ID_CONTROL_INFO = 0
+MAVLINK_MSG_ID_NN_LIB_INFO = 1
 
 class MAVLink_control_info_message(MAVLink_message):
         '''
@@ -257,9 +258,36 @@ class MAVLink_control_info_message(MAVLink_message):
         def pack(self, mav, force_mavlink1=False):
                 return MAVLink_message.pack(self, mav, 196, struct.pack('<Q4f3f3f3f3f4f', self.timestamp, self.quaternion[0], self.quaternion[1], self.quaternion[2], self.quaternion[3], self.position[0], self.position[1], self.position[2], self.angular_velocity[0], self.angular_velocity[1], self.angular_velocity[2], self.velocity[0], self.velocity[1], self.velocity[2], self.control_h[0], self.control_h[1], self.control_h[2], self.control_l[0], self.control_l[1], self.control_l[2], self.control_l[3]), force_mavlink1=force_mavlink1)
 
+class MAVLink_nn_lib_info_message(MAVLink_message):
+        '''
+        update nn shared obj
+        '''
+        id = MAVLINK_MSG_ID_NN_LIB_INFO
+        name = 'NN_LIB_INFO'
+        fieldnames = [' D_timestamp', 'dir']
+        ordered_fieldnames = [' D_timestamp', 'dir']
+        fieldtypes = ['uint64_t', 'char']
+        format = '<Q128s'
+        native_format = bytearray('<Qc', 'ascii')
+        orders = [0, 1]
+        lengths = [1, 1]
+        array_lengths = [0, 128]
+        crc_extra = 82
+        unpacker = struct.Struct('<Q128s')
+
+        def __init__(self,  D_timestamp, dir):
+                MAVLink_message.__init__(self, MAVLink_nn_lib_info_message.id, MAVLink_nn_lib_info_message.name)
+                self._fieldnames = MAVLink_nn_lib_info_message.fieldnames
+                self. D_timestamp =  D_timestamp
+                self.dir = dir
+
+        def pack(self, mav, force_mavlink1=False):
+                return MAVLink_message.pack(self, mav, 82, struct.pack('<Q128s', self. D_timestamp, self.dir), force_mavlink1=force_mavlink1)
+
 
 mavlink_map = {
         MAVLINK_MSG_ID_CONTROL_INFO : MAVLink_control_info_message,
+        MAVLINK_MSG_ID_NN_LIB_INFO : MAVLink_nn_lib_info_message,
 }
 
 class MAVError(Exception):
@@ -688,4 +716,24 @@ class MAVLink(object):
 
                 '''
                 return self.send(self.control_info_encode(timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l), force_mavlink1=force_mavlink1)
+
+        def nn_lib_info_encode(self,  D_timestamp, dir):
+                '''
+                update nn shared obj
+
+                 D_timestamp              : delta t (type:uint64_t)
+                dir                       : new directory of nn shared obj (type:char)
+
+                '''
+                return MAVLink_nn_lib_info_message( D_timestamp, dir)
+
+        def nn_lib_info_send(self,  D_timestamp, dir, force_mavlink1=False):
+                '''
+                update nn shared obj
+
+                 D_timestamp              : delta t (type:uint64_t)
+                dir                       : new directory of nn shared obj (type:char)
+
+                '''
+                return self.send(self.nn_lib_info_encode( D_timestamp, dir), force_mavlink1=force_mavlink1)
 

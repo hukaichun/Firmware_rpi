@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "mavlink/control_info/control_info.hpp"
+#include "hrl_mavlink/control_info/control_info.hpp"
 #include "hrl_socket/server.hpp"
 
 

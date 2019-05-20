@@ -97,3 +97,66 @@ TEST(control_info_interop, CONTROL_INFO)
 #endif
 }
 #endif
+
+TEST(control_info, NN_LIB_INFO)
+{
+    mavlink::mavlink_message_t msg;
+    mavlink::MsgMap map1(msg);
+    mavlink::MsgMap map2(msg);
+
+    mavlink::control_info::msg::NN_LIB_INFO packet_in{};
+    packet_in. D_timestamp = 93372036854775807ULL;
+    packet_in.dir = to_char_array("IJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDE");
+
+    mavlink::control_info::msg::NN_LIB_INFO packet1{};
+    mavlink::control_info::msg::NN_LIB_INFO packet2{};
+
+    packet1 = packet_in;
+
+    //std::cout << packet1.to_yaml() << std::endl;
+
+    packet1.serialize(map1);
+
+    mavlink::mavlink_finalize_message(&msg, 1, 1, packet1.MIN_LENGTH, packet1.LENGTH, packet1.CRC_EXTRA);
+
+    packet2.deserialize(map2);
+
+    EXPECT_EQ(packet1. D_timestamp, packet2. D_timestamp);
+    EXPECT_EQ(packet1.dir, packet2.dir);
+}
+
+#ifdef TEST_INTEROP
+TEST(control_info_interop, NN_LIB_INFO)
+{
+    mavlink_message_t msg;
+
+    // to get nice print
+    memset(&msg, 0, sizeof(msg));
+
+    mavlink_nn_lib_info_t packet_c {
+         93372036854775807ULL, "IJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDE"
+    };
+
+    mavlink::control_info::msg::NN_LIB_INFO packet_in{};
+    packet_in. D_timestamp = 93372036854775807ULL;
+    packet_in.dir = to_char_array("IJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDE");
+
+    mavlink::control_info::msg::NN_LIB_INFO packet2{};
+
+    mavlink_msg_nn_lib_info_encode(1, 1, &msg, &packet_c);
+
+    // simulate message-handling callback
+    [&packet2](const mavlink_message_t *cmsg) {
+        MsgMap map2(cmsg);
+
+        packet2.deserialize(map2);
+    } (&msg);
+
+    EXPECT_EQ(packet_in. D_timestamp, packet2. D_timestamp);
+    EXPECT_EQ(packet_in.dir, packet2.dir);
+
+#ifdef PRINT_MSG
+    PRINT_MSG(msg);
+#endif
+}
+#endif
