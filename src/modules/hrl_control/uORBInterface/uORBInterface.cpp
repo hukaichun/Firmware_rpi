@@ -8,20 +8,18 @@ uORBInterface::~uORBInterface() {
 		delete _pwm_out_handle;
 }
 
-uORBInterface::uORBInterface(const char* pwm_device, int max_num_outputs):
-	_now(hrt_absolute_time()),
-	_input_rc(),
-	_vehicle_attitude(),
-	_vehicle_local_position(),
-	_battery_status(),
-	_led_control(),
-	_input_rc_sub(-1),
-	_vehicle_attitude_sub(-1),
-	_vehicle_local_position_sub(-1),
-	_battery_status_sub(-1),
-	_pwm_out_handle(nullptr) {
-
-
+uORBInterface::uORBInterface(const char* pwm_device, int max_num_outputs)
+:_now(hrt_absolute_time()),
+ _input_rc(),
+ _vehicle_attitude(),
+ _vehicle_local_position(),
+ _battery_status(),
+ _led_control(),
+ _input_rc_sub(-1),
+ _vehicle_attitude_sub(-1),
+ _vehicle_local_position_sub(-1),
+ _battery_status_sub(-1),
+ _pwm_out_handle(nullptr) {
 	uORBTopicInit();
 	pwm_init(pwm_device, max_num_outputs);
 	

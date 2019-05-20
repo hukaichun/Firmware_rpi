@@ -53,6 +53,7 @@ void SocketServer::init_server(int port, int client_num=1) {
 
 void SocketServer::accept() {
     _client_fd = ::accept(_server_fd, (sockaddr*)&_client_info, &_client_addr_len);
+    _attach_client = true;
     return;
 }
 
@@ -64,12 +65,24 @@ size_t SocketServer::store(std::vector<unsigned char> message) {
 
 
 void SocketServer::send_all() {
-    while(_message_queue.size()>0) {
-            auto& msg = _message_queue.front();
-            ::write(_client_fd, msg.data(), msg.size());
-            _message_queue.pop();
+    if(_attach_client) {
+        while(_message_queue.size()>0) {
+                auto& msg = _message_queue.front();
+                ::write(_client_fd, msg.data(), msg.size());
+                _message_queue.pop();
+        }
+    } else {
+        clear_all();
     }
+        
     return;
+}
+
+
+void SocketServer::clear_all()
+{
+    std::queue<std::vector<unsigned char>> empty;
+    std::swap(empty, _message_queue);
 }
 
 

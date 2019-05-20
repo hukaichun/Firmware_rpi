@@ -1,5 +1,5 @@
 #include <Eigen/Dense>
-#include <vector>
+#include <array>
 #include <cmath>
 
 #include "parameter.hpp"
@@ -20,14 +20,11 @@ inline void truncate_zero(Eigen::RowVectorXf& vec)
 extern "C"{
 
 
-
-
-void neural_network_respond(std::vector<float>* state_v, std::vector<float>* output)
-{
+std::array<float,4> neural_network_respond(const std::array<float, 18>& state_v) {
 	Eigen::RowVectorXf vec(18);
+	std::array<float,4> output;
 
-	for(int i=0; i<18; ++i) vec[i] = (*state_v)[i];
-
+	for(int i=0; i<18; ++i) vec[i] = state_v[i];
 
 	vec*=dense_kernel;
 	vec+=dense_bias;
@@ -40,11 +37,10 @@ void neural_network_respond(std::vector<float>* state_v, std::vector<float>* out
 	vec*=dense_2_kernel;
 	vec+=dense_2_bias;
 
-	output->resize(4,0);
 	for(int i=0; i<4; ++i)
-		(*output)[i] = sin(vec[i]);
+		output[i] = sin(vec[i]);
 
-	return;
+	return output;
 }
 
 

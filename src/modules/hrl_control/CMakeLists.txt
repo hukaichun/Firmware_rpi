@@ -38,6 +38,7 @@ px4_add_module(
     	-fexceptions
     SRCS
         hrl_control.cpp
+        hierarchical_controller.cpp
         uORBInterface/uORBInterface.cpp
         cerebellum/cerebellum.cpp
         diary/hrl_socket/server.cpp

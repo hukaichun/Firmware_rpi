@@ -98,14 +98,13 @@ public:
 	battery_status_s         _battery_status;
 	led_control_s            _led_control;
 
-
-private:
-	
-
 	int _input_rc_sub;
 	int _vehicle_attitude_sub;
 	int _vehicle_local_position_sub;
 	int _battery_status_sub;
+
+private:
+	
 
 	orb_advert_t    _led_control_pub;
 

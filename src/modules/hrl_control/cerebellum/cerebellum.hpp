@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dlfcn.h>
+#include <array>
 #include <vector>
 
 
@@ -51,7 +52,7 @@ public:
 	Cerebellum(const char* dir_H, const char* dir_L);
 
 
-	std::vector<float>* respond(float rotation_matrix[9], float position[3], float angular_velocity[3], float velocity[3]);
+	std::vector<float> respond(float rotation_matrix[9], float position[3], float angular_velocity[3], float velocity[3]);
 };
 
 
@@ -70,9 +71,9 @@ public:
  * NN implement
  */
 template<typename OUTPUT, typename INPUT>
-NN<OUTPUT, INPUT>::NN(const char* DIR):
-	info({.handle=nullptr, .api=nullptr, .name=nullptr}),
-	backup({.handle=nullptr, .api=nullptr, .name=nullptr})
+NN<OUTPUT, INPUT>::NN(const char* DIR)
+:info({.handle=nullptr, .api=nullptr, .name=nullptr}),
+ backup({.handle=nullptr, .api=nullptr, .name=nullptr})
 {
 	dlerror();
 	if(!load_nn(DIR)) throw dlerror();

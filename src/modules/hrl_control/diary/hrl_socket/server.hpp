@@ -30,6 +30,7 @@ private:
 
     void init_server(int prot, int client_num);
 
+    bool _attach_client;
 
 public:
 
@@ -43,6 +44,8 @@ public:
     virtual size_t store(std::vector<unsigned char>);
 
     void send_all();
+
+    void clear_all();
 };
 
 

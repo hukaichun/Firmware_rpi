@@ -1,19 +1,20 @@
 #include <Eigen/Dense>
 
-#include <vector>
-
-
+#include <array>
 
 extern "C"{
 
-void neural_network_respond(std::vector<float>* state_v, std::vector<float>* output)
-{
-	Eigen::Map<Eigen::RowVectorXf> state(state_v->data(), 18);
+std::array<float,3> neural_network_respond(const std::array<float,18>& state_v) {
 
-	output->resize(3);
-	for(auto& v: *output) v=0;
+	Eigen::RowVectorXf vec(18);
+	std::array<float,3> output;
 
-	return;
+	for(int i=0; i<18; ++i) vec[i] = state_v[i];
+
+	for(int i=0; i<3; ++i)
+		output[i] = vec[i]*0;
+
+	return output;
 }
 
 char name[] = "High-Level controller";

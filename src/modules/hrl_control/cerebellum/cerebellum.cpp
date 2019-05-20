@@ -3,15 +3,15 @@
 
 
 
-Cerebellum::Cerebellum(const char* dir_H, const char* dir_L):
-	low_level(dir_L), 
-	high_level(dir_H),
-	_state_buff(18),
-	_delta_p(3)
+Cerebellum::Cerebellum(const char* dir_H, const char* dir_L)
+:low_level(dir_L), 
+ high_level(dir_H),
+ _state_buff(18),
+ _delta_p(3)
 {}
 
 
-std::vector<float>* Cerebellum::respond(float* rota, float* position, float* angular_v, float* velocity){
+std::vector<float>* Cerebellum::respond(float* rota, float* position, float* angular_v, float* velocity) {
 
 	static std::vector<float> output(4);
 

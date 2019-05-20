@@ -46,12 +46,11 @@ std::vector<unsigned char> msg2buff(
 
 
 
-Diary::Diary(int port, uint8_t sys_id):
-	SocketServer(port),
-	_msg_t(),
-	_mag_map(_msg_t),
-	_system_id(sys_id){
-
+Diary::Diary(int port, uint8_t sys_id)
+:SocketServer(port),
+ _msg_t(),
+ _mag_map(_msg_t),
+ _system_id(sys_id) {
 	memset(&_msg_t, 0, sizeof(_msg_t));
 }
 
@@ -62,8 +61,7 @@ size_t Diary::store(uint64_t t,
 		     std::array<float,3>& w, 
 		     std::array<float,3>& v,
 		     std::array<float,3>& hc,
-		     std::array<float,4>& lc){
-
+		     std::array<float,4>& lc) {
 	
 	_control_info.timestamp = t;
 	memcpy(_control_info.quaternion.data(),       q.data(),  sizeof(float)*q.size());
