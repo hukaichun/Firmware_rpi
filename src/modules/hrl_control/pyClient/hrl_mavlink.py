@@ -224,39 +224,8 @@ enums = {}
 
 # message IDs
 MAVLINK_MSG_ID_BAD_DATA = -1
-MAVLINK_MSG_ID_CONTROL_INFO = 0
-MAVLINK_MSG_ID_NN_LIB_INFO = 1
-
-class MAVLink_control_info_message(MAVLink_message):
-        '''
-        state action pair
-        '''
-        id = MAVLINK_MSG_ID_CONTROL_INFO
-        name = 'CONTROL_INFO'
-        fieldnames = ['timestamp', 'quaternion', 'position', 'angular_velocity', 'velocity', 'control_h', 'control_l']
-        ordered_fieldnames = ['timestamp', 'quaternion', 'position', 'angular_velocity', 'velocity', 'control_h', 'control_l']
-        fieldtypes = ['uint64_t', 'float', 'float', 'float', 'float', 'float', 'float']
-        format = '<Q4f3f3f3f3f4f'
-        native_format = bytearray('<Qffffff', 'ascii')
-        orders = [0, 1, 2, 3, 4, 5, 6]
-        lengths = [1, 4, 3, 3, 3, 3, 4]
-        array_lengths = [0, 4, 3, 3, 3, 3, 4]
-        crc_extra = 196
-        unpacker = struct.Struct('<Q4f3f3f3f3f4f')
-
-        def __init__(self, timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l):
-                MAVLink_message.__init__(self, MAVLink_control_info_message.id, MAVLink_control_info_message.name)
-                self._fieldnames = MAVLink_control_info_message.fieldnames
-                self.timestamp = timestamp
-                self.quaternion = quaternion
-                self.position = position
-                self.angular_velocity = angular_velocity
-                self.velocity = velocity
-                self.control_h = control_h
-                self.control_l = control_l
-
-        def pack(self, mav, force_mavlink1=False):
-                return MAVLink_message.pack(self, mav, 196, struct.pack('<Q4f3f3f3f3f4f', self.timestamp, self.quaternion[0], self.quaternion[1], self.quaternion[2], self.quaternion[3], self.position[0], self.position[1], self.position[2], self.angular_velocity[0], self.angular_velocity[1], self.angular_velocity[2], self.velocity[0], self.velocity[1], self.velocity[2], self.control_h[0], self.control_h[1], self.control_h[2], self.control_l[0], self.control_l[1], self.control_l[2], self.control_l[3]), force_mavlink1=force_mavlink1)
+MAVLINK_MSG_ID_NN_LIB_INFO = 0
+MAVLINK_MSG_ID_CONTROL_INFO = 1
 
 class MAVLink_nn_lib_info_message(MAVLink_message):
         '''
@@ -284,10 +253,44 @@ class MAVLink_nn_lib_info_message(MAVLink_message):
         def pack(self, mav, force_mavlink1=False):
                 return MAVLink_message.pack(self, mav, 82, struct.pack('<Q128s', self. D_timestamp, self.dir), force_mavlink1=force_mavlink1)
 
+class MAVLink_control_info_message(MAVLink_message):
+        '''
+        state action pair
+        '''
+        id = MAVLINK_MSG_ID_CONTROL_INFO
+        name = 'CONTROL_INFO'
+        fieldnames = ['timestamp', 'quaternion', 'position', 'angular_velocity', 'velocity', 'control_h', 'control_l', 'local_position', 'position_sp', 'voltage']
+        ordered_fieldnames = ['timestamp', 'quaternion', 'position', 'angular_velocity', 'velocity', 'control_h', 'control_l', 'local_position', 'position_sp', 'voltage']
+        fieldtypes = ['uint64_t', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float']
+        format = '<Q4f3f3f3f3f4f3f3f1f'
+        native_format = bytearray('<Qfffffffff', 'ascii')
+        orders = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        lengths = [1, 4, 3, 3, 3, 3, 4, 3, 3, 1]
+        array_lengths = [0, 4, 3, 3, 3, 3, 4, 3, 3, 1]
+        crc_extra = 35
+        unpacker = struct.Struct('<Q4f3f3f3f3f4f3f3f1f')
+
+        def __init__(self, timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l, local_position, position_sp, voltage):
+                MAVLink_message.__init__(self, MAVLink_control_info_message.id, MAVLink_control_info_message.name)
+                self._fieldnames = MAVLink_control_info_message.fieldnames
+                self.timestamp = timestamp
+                self.quaternion = quaternion
+                self.position = position
+                self.angular_velocity = angular_velocity
+                self.velocity = velocity
+                self.control_h = control_h
+                self.control_l = control_l
+                self.local_position = local_position
+                self.position_sp = position_sp
+                self.voltage = voltage
+
+        def pack(self, mav, force_mavlink1=False):
+                return MAVLink_message.pack(self, mav, 35, struct.pack('<Q4f3f3f3f3f4f3f3f1f', self.timestamp, self.quaternion[0], self.quaternion[1], self.quaternion[2], self.quaternion[3], self.position[0], self.position[1], self.position[2], self.angular_velocity[0], self.angular_velocity[1], self.angular_velocity[2], self.velocity[0], self.velocity[1], self.velocity[2], self.control_h[0], self.control_h[1], self.control_h[2], self.control_l[0], self.control_l[1], self.control_l[2], self.control_l[3], self.local_position[0], self.local_position[1], self.local_position[2], self.position_sp[0], self.position_sp[1], self.position_sp[2], self.voltage), force_mavlink1=force_mavlink1)
+
 
 mavlink_map = {
-        MAVLINK_MSG_ID_CONTROL_INFO : MAVLink_control_info_message,
         MAVLINK_MSG_ID_NN_LIB_INFO : MAVLink_nn_lib_info_message,
+        MAVLINK_MSG_ID_CONTROL_INFO : MAVLink_control_info_message,
 }
 
 class MAVError(Exception):
@@ -687,36 +690,6 @@ class MAVLink(object):
                 m._crc = crc
                 m._header = MAVLink_header(msgId, incompat_flags, compat_flags, mlen, seq, srcSystem, srcComponent)
                 return m
-        def control_info_encode(self, timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l):
-                '''
-                state action pair
-
-                timestamp                 : timestamp (type:uint64_t)
-                quaternion                : quaternion (type:float)
-                position                  : position (type:float)
-                angular_velocity          : angular velocity (type:float)
-                velocity                  : velocity (type:float)
-                control_h                 : high level control (type:float)
-                control_l                 : low level control (type:float)
-
-                '''
-                return MAVLink_control_info_message(timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l)
-
-        def control_info_send(self, timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l, force_mavlink1=False):
-                '''
-                state action pair
-
-                timestamp                 : timestamp (type:uint64_t)
-                quaternion                : quaternion (type:float)
-                position                  : position (type:float)
-                angular_velocity          : angular velocity (type:float)
-                velocity                  : velocity (type:float)
-                control_h                 : high level control (type:float)
-                control_l                 : low level control (type:float)
-
-                '''
-                return self.send(self.control_info_encode(timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l), force_mavlink1=force_mavlink1)
-
         def nn_lib_info_encode(self,  D_timestamp, dir):
                 '''
                 update nn shared obj
@@ -736,4 +709,40 @@ class MAVLink(object):
 
                 '''
                 return self.send(self.nn_lib_info_encode( D_timestamp, dir), force_mavlink1=force_mavlink1)
+
+        def control_info_encode(self, timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l, local_position, position_sp, voltage):
+                '''
+                state action pair
+
+                timestamp                 : timestamp (type:uint64_t)
+                quaternion                : quaternion (type:float)
+                position                  : position (type:float)
+                angular_velocity          : angular velocity (type:float)
+                velocity                  : velocity (type:float)
+                control_h                 : high level control (type:float)
+                control_l                 : low level control (type:float)
+                local_position            : local position (type:float)
+                position_sp               : position set point (type:float)
+                voltage                   : voltage (type:float)
+
+                '''
+                return MAVLink_control_info_message(timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l, local_position, position_sp, voltage)
+
+        def control_info_send(self, timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l, local_position, position_sp, voltage, force_mavlink1=False):
+                '''
+                state action pair
+
+                timestamp                 : timestamp (type:uint64_t)
+                quaternion                : quaternion (type:float)
+                position                  : position (type:float)
+                angular_velocity          : angular velocity (type:float)
+                velocity                  : velocity (type:float)
+                control_h                 : high level control (type:float)
+                control_l                 : low level control (type:float)
+                local_position            : local position (type:float)
+                position_sp               : position set point (type:float)
+                voltage                   : voltage (type:float)
+
+                '''
+                return self.send(self.control_info_encode(timestamp, quaternion, position, angular_velocity, velocity, control_h, control_l, local_position, position_sp, voltage), force_mavlink1=force_mavlink1)
 

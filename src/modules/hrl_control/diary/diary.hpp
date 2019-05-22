@@ -6,14 +6,15 @@
 #include <map>
 
 #include "hrl_mavlink/control_info/control_info.hpp"
-#include "hrl_socket/server.hpp"
+#include "hrl_socket/Socket.hpp"
 
 
 
 
-class Diary : public SocketServer {
+class Diary : public Socket_TCP {
 
 private:
+
 	mavlink::control_info::msg::CONTROL_INFO   _control_info;
 	mavlink::mavlink_message_t                 _msg_t;
 	mavlink::MsgMap                            _mag_map;
@@ -22,8 +23,6 @@ private:
 
 
 public:
-	
-	
 
 	size_t store(uint64_t t,
 		     const std::array<float,4>& q, 
@@ -31,7 +30,10 @@ public:
 		     const std::array<float,3>& w, 
 		     const std::array<float,3>& v,
 		     const std::array<float,3>& hc,
-		     const std::array<float,4>& lc);
+		     const std::array<float,4>& lc,
+		     const std::array<float,3>& lp,
+		     const std::array<float,3>& sp,
+		     const std::array<float,1>& vo);
 
 	Diary() = delete;
 	Diary(int port, uint8_t sys_id);

@@ -81,12 +81,6 @@
 				"build_*"
 			],
 			"path": "."
-		},
-		{
-			"path": "/home/indigo/src/px4_RL_control_system_ert_rtw"
-		},
-		{
-			"path": "/home/indigo/src/Firmware_simulink"
 		}
 	],
 	"settings":

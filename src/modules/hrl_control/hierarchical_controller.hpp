@@ -35,6 +35,8 @@ public:
 	AUXILIARY_OBJ(3,_position_sp);
 	AUXILIARY_OBJ(3,_set_point_error);
 	AUXILIARY_OBJ(9,_rotation_matrix);
+	AUXILIARY_OBJ(1,_voltage);
+
 
 	void main_loop();
 	

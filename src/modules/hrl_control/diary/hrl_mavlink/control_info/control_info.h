@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 #ifndef MAVLINK_MESSAGE_CRCS
-#define MAVLINK_MESSAGE_CRCS {{0, 196, 88, 88, 0, 0, 0}, {1, 82, 136, 136, 0, 0, 0}}
+#define MAVLINK_MESSAGE_CRCS {{0, 82, 136, 136, 0, 0, 0}, {1, 35, 116, 116, 0, 0, 0}}
 #endif
 
 #include "../protocol.h"
@@ -47,8 +47,8 @@ extern "C" {
 #endif
 
 // MESSAGE DEFINITIONS
-#include "./mavlink_msg_control_info.h"
 #include "./mavlink_msg_nn_lib_info.h"
+#include "./mavlink_msg_control_info.h"
 
 // base include
 
@@ -57,8 +57,8 @@ extern "C" {
 #define MAVLINK_THIS_XML_IDX 0
 
 #if MAVLINK_THIS_XML_IDX == MAVLINK_PRIMARY_XML_IDX
-# define MAVLINK_MESSAGE_INFO {MAVLINK_MESSAGE_INFO_CONTROL_INFO, MAVLINK_MESSAGE_INFO_NN_LIB_INFO}
-# define MAVLINK_MESSAGE_NAMES {{ "CONTROL_INFO", 0 }, { "NN_LIB_INFO", 1 }}
+# define MAVLINK_MESSAGE_INFO {MAVLINK_MESSAGE_INFO_NN_LIB_INFO, MAVLINK_MESSAGE_INFO_CONTROL_INFO}
+# define MAVLINK_MESSAGE_NAMES {{ "CONTROL_INFO", 1 }, { "NN_LIB_INFO", 0 }}
 # if MAVLINK_COMMAND_24BIT
 #  include "../mavlink_get_info.h"
 # endif

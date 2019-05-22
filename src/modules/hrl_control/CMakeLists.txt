@@ -40,7 +40,8 @@ px4_add_module(
         hrl_control.cpp
         hierarchical_controller.cpp
         uORBInterface/uORBInterface.cpp
-        diary/hrl_socket/server.cpp
+        diary/hrl_socket/Socket_TCP.cpp
+        diary/hrl_socket/Socket_UDP.cpp
         diary/diary.cpp
     DEPENDS
     )

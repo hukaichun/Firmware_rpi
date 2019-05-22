@@ -1,7 +1,7 @@
 #pragma once
 // MESSAGE NN_LIB_INFO PACKING
 
-#define MAVLINK_MSG_ID_NN_LIB_INFO 1
+#define MAVLINK_MSG_ID_NN_LIB_INFO 0
 
 MAVPACKED(
 typedef struct __mavlink_nn_lib_info_t {
@@ -11,17 +11,17 @@ typedef struct __mavlink_nn_lib_info_t {
 
 #define MAVLINK_MSG_ID_NN_LIB_INFO_LEN 136
 #define MAVLINK_MSG_ID_NN_LIB_INFO_MIN_LEN 136
-#define MAVLINK_MSG_ID_1_LEN 136
-#define MAVLINK_MSG_ID_1_MIN_LEN 136
+#define MAVLINK_MSG_ID_0_LEN 136
+#define MAVLINK_MSG_ID_0_MIN_LEN 136
 
 #define MAVLINK_MSG_ID_NN_LIB_INFO_CRC 82
-#define MAVLINK_MSG_ID_1_CRC 82
+#define MAVLINK_MSG_ID_0_CRC 82
 
 #define MAVLINK_MSG_NN_LIB_INFO_FIELD_DIR_LEN 128
 
 #if MAVLINK_COMMAND_24BIT
 #define MAVLINK_MESSAGE_INFO_NN_LIB_INFO { \
-    1, \
+    0, \
     "NN_LIB_INFO", \
     2, \
     {  { " D_timestamp", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_nn_lib_info_t,  D_timestamp) }, \

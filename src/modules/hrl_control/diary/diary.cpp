@@ -47,7 +47,7 @@ std::vector<unsigned char> msg2buff(
 
 
 Diary::Diary(int port, uint8_t sys_id)
-:SocketServer(port),
+:Socket_TCP(port),
  _msg_t(),
  _mag_map(_msg_t),
  _system_id(sys_id) {
@@ -56,12 +56,15 @@ Diary::Diary(int port, uint8_t sys_id)
 
 
 size_t Diary::store(uint64_t t,
-		    const std::array<float,4>& q, 
-		    const std::array<float,3>& p, 
-		    const std::array<float,3>& w, 
-		    const std::array<float,3>& v,
-		    const std::array<float,3>& hc,
-		    const std::array<float,4>& lc) {
+		     const std::array<float,4>& q, 
+		     const std::array<float,3>& p, 
+		     const std::array<float,3>& w, 
+		     const std::array<float,3>& v,
+		     const std::array<float,3>& hc,
+		     const std::array<float,4>& lc,
+		     const std::array<float,3>& lp,
+		     const std::array<float,3>& sp,
+		     const std::array<float,1>& vo) {
 	
 	_control_info.timestamp = t;
 	memcpy(_control_info.quaternion.data(),       q.data(),  sizeof(float)*q.size());
@@ -70,11 +73,15 @@ size_t Diary::store(uint64_t t,
 	memcpy(_control_info.velocity.data(),         v.data(),  sizeof(float)*v.size());
 	memcpy(_control_info.control_h.data(),        hc.data(), sizeof(float)*hc.size());
 	memcpy(_control_info.control_l.data(),        lc.data(), sizeof(float)*lc.size());
+	memcpy(_control_info.local_position.data(),   lp.data(), sizeof(float)*lp.size());
+	memcpy(_control_info.position_sp.data(),      sp.data(), sizeof(float)*sp.size());
+	memcpy(_control_info.voltage.data(),          vo.data(), sizeof(float)*vo.size());
 	_control_info.serialize(_mag_map);
 	
 	//finialize
 	auto buf = ::msg2buff(_msg_t, _system_id, 0, _control_info.CRC_EXTRA);
-	return SocketServer::store(buf);
+	send(buf);
+	return _message_queue.size();
 	
 }
 

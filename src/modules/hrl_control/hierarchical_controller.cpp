@@ -48,11 +48,15 @@ void HierarchicalController::main_loop() {
 				                _angular_rate,
 				                _velocity,
 				                _policy._delta_p,
-				                low_level_control);
+				                low_level_control,
+				                _position,
+				                _position_sp,
+				                _voltage
+				                );
 
 			if(num>255)
 			{
-				std::async(std::launch::async, &Diary::send_all, &_log);
+				std::async(std::launch::async, &Diary::flush, &_log);
 				break;
 			}
 		}
@@ -120,21 +124,26 @@ void HierarchicalController::update_set_point_error() {
 
 
 void HierarchicalController::update_rotation_matrix() {
-    float a = _quaternion[0];
-    float b = _quaternion[1];
-    float c = _quaternion[2];
-    float d = _quaternion[3];
-    float aSq = a * a;
-    float bSq = b * b;
-    float cSq = c * c;
-    float dSq = d * d;
-    _rotation_matrix[0*3+0] = aSq + bSq - cSq - dSq;
-    _rotation_matrix[1*3+0] = 2 * (b * c - a * d);
-    _rotation_matrix[2*3+0] = 2 * (a * c + b * d);
-    _rotation_matrix[0*3+1] = 2 * (b * c + a * d);
-    _rotation_matrix[1*3+1] = aSq - bSq + cSq - dSq;
-    _rotation_matrix[2*3+1] = 2 * (c * d - a * b);
-    _rotation_matrix[0*3+2] = 2 * (b * d - a * c);
-    _rotation_matrix[1*3+2] = 2 * (a * b + c * d);
-    _rotation_matrix[2*3+2] = aSq - bSq - cSq + dSq;
+	float a = _quaternion[0];
+	float b = _quaternion[1];
+	float c = _quaternion[2];
+	float d = _quaternion[3];
+	float aSq = a * a;
+	float bSq = b * b;
+	float cSq = c * c;
+	float dSq = d * d;
+	_rotation_matrix[0*3+0] = aSq + bSq - cSq - dSq;
+	_rotation_matrix[1*3+0] = 2 * (b * c - a * d);
+	_rotation_matrix[2*3+0] = 2 * (a * c + b * d);
+	_rotation_matrix[0*3+1] = 2 * (b * c + a * d);
+	_rotation_matrix[1*3+1] = aSq - bSq + cSq - dSq;
+	_rotation_matrix[2*3+1] = 2 * (c * d - a * b);
+	_rotation_matrix[0*3+2] = 2 * (b * d - a * c);
+	_rotation_matrix[1*3+2] = 2 * (a * b + c * d);
+	_rotation_matrix[2*3+2] = aSq - bSq - cSq + dSq;
+}
+
+
+void HierarchicalController::update_voltage() {
+	_voltage[0] = _uORB._battery_status.voltage_filtered_v;
 }

@@ -21,7 +21,7 @@ namespace control_info {
 /**
  * Array of msg_entry needed for @p mavlink_parse_char() (trought @p mavlink_get_msg_entry())
  */
-constexpr std::array<mavlink_msg_entry_t, 2> MESSAGE_ENTRIES {{ {0, 196, 88, 0, 0, 0}, {1, 82, 136, 0, 0, 0} }};
+constexpr std::array<mavlink_msg_entry_t, 2> MESSAGE_ENTRIES {{ {0, 82, 136, 0, 0, 0}, {1, 35, 116, 0, 0, 0} }};
 
 //! MAVLINK VERSION
 constexpr auto MAVLINK_VERSION = 1;
@@ -36,8 +36,8 @@ constexpr auto MAVLINK_VERSION = 1;
 } // namespace mavlink
 
 // MESSAGE DEFINITIONS
-#include "./mavlink_msg_control_info.hpp"
 #include "./mavlink_msg_nn_lib_info.hpp"
+#include "./mavlink_msg_control_info.hpp"
 
 // base include
 

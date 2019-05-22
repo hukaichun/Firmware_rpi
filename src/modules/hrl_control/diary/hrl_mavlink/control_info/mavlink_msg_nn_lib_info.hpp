@@ -12,7 +12,7 @@ namespace msg {
  * update nn shared obj
  */
 struct NN_LIB_INFO : mavlink::Message {
-    static constexpr msgid_t MSG_ID = 1;
+    static constexpr msgid_t MSG_ID = 0;
     static constexpr size_t LENGTH = 136;
     static constexpr size_t MIN_LENGTH = 136;
     static constexpr uint8_t CRC_EXTRA = 82;
