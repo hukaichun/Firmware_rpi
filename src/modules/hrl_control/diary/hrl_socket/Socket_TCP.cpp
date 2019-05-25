@@ -52,7 +52,7 @@ void Socket_TCP::init_server(int port, int client_num=1) {
 
 
 void Socket_TCP::accept() {
-    _partner_fd = ::accept(_self_fd, (sockaddr*)&_partner_info, &_partner_addr_len);
+    _adjoint_fd = ::accept(_self_fd, (sockaddr*)&_adjoint_info, &_adjoint_addr_len);
     _attach_client = true;
     return;
 }
@@ -65,7 +65,7 @@ void Socket_TCP::send(std::vector<unsigned char> message) {
 
 
 ssize_t Socket_TCP::recv(void *buf, size_t len) {
-    return ::recv(_partner_fd, buf, len, 0);
+    return ::recv(_adjoint_fd, buf, len, 0);
 }
 
 
@@ -79,7 +79,7 @@ void Socket_TCP::flush() {
 
     while(_message_queue.size()>0) {
     auto& msg = _message_queue.front();
-    ::write(_partner_fd, msg.data(), msg.size());
+    ::write(_adjoint_fd, msg.data(), msg.size());
     _message_queue.pop();
     }
 }
@@ -91,6 +91,6 @@ Socket_TCP::Socket_TCP(int port)
 }
 
 Socket_TCP::~Socket_TCP() {
-    if(_partner_fd>0) close(_partner_fd);
+    if(_adjoint_fd>0) close(_adjoint_fd);
     close(_self_fd);
 }

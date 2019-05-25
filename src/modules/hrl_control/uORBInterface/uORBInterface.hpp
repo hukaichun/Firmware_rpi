@@ -66,7 +66,7 @@ public:
 
 
 	inline void
-		update_all() {
+		pool_all() {
 			input_rc_poll();
 			vehicle_attitude_poll();
 			vehicle_local_position_poll();

@@ -12,7 +12,11 @@
 #include <future>
 
 
-
+/** 
+ *  automatic declare   
+ *        std::array<float, dim>  var;
+ *        void update_var();
+ */
 #define AUXILIARY_OBJ(dim, var) std::array<float, dim> var; void update##var();
 
 
@@ -23,8 +27,9 @@ public:
 	
 	// void status();
 	// void stop();
-	HierarchicalController(Cerebellum<18,3>&, Diary&, uORBInterface&);
+	HierarchicalController(Cerebellum<18,3>&, Blabbermouth&, uORBInterface&);
 
+	void update(); 
 
 	//dirty objs
 	AUXILIARY_OBJ(4,_quaternion);
@@ -45,16 +50,16 @@ private:
 	
 
 	Cerebellum<18,3>&     _policy;
-	Diary&                _log;
+	Blabbermouth&         _log;
 	uORBInterface&        _uORB;
 
 
 	
 
 
-	bool _task_should_stop;
+	volatile bool _task_should_stop;
 };
 
 
 
-//#undef AUXILIARY_OBJ(dim, var)
+#undef AUXILIARY_OBJ

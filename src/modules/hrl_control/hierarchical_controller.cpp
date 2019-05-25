@@ -3,13 +3,11 @@
 
 
 
-HierarchicalController::HierarchicalController(Cerebellum<18,3>& ce, Diary& di, uORBInterface& uo)
+HierarchicalController::HierarchicalController(Cerebellum<18,3>& ce, Blabbermouth& di, uORBInterface& uo)
 :_policy(ce), 
  _log(di), 
  _uORB(uo), 
- _task_should_stop(false) {
-	_log.accept();
-}
+ _task_should_stop(false) {}
 
 
 void HierarchicalController::main_loop() {
@@ -29,20 +27,13 @@ void HierarchicalController::main_loop() {
 		if(pret<0) {
 			PX4_ERR("ERROR return value from poll(): %d", pret);
 		} else {
-			_uORB.update_all();
-			update_quaternion();
-			update_angular_rate();
-			update_position();
-			update_velocity();
-			update_position_sp();
-			update_set_point_error();
-			update_rotation_matrix();
+			update();
 
 			low_level_control=
 				_policy.respond(_rotation_matrix, _set_point_error,
 					        _angular_rate, _velocity);
 			
-			size_t num = _log.store(_uORB._now,
+			size_t num = _log.take_note(_uORB._now,
 				                _quaternion, 
 				                _set_point_error,
 				                _angular_rate,
@@ -51,18 +42,50 @@ void HierarchicalController::main_loop() {
 				                low_level_control,
 				                _position,
 				                _position_sp,
-				                _voltage
-				                );
+				                _voltage);
 
 			if(num>255)
 			{
-				std::async(std::launch::async, &Diary::flush, &_log);
+				// std::async(std::launch::async, &Diary::flush, &_log);
 				break;
 			}
 		}
-
 	}
 }
+
+
+void HierarchicalController::update() {
+	_uORB.sync();
+
+	bool att_update = _uORB.vehicle_attitude_poll();
+	if(att_update) {
+		update_quaternion();
+		update_angular_rate();
+
+		update_rotation_matrix();
+	}
+
+	bool loc_update = _uORB.vehicle_local_position_poll();
+	if(loc_update) {
+		update_position();
+		update_velocity();
+	}
+
+	bool rc_update = _uORB.input_rc_poll();
+	if(rc_update) {
+		update_position_sp();
+	}
+
+	bool bat_update = _uORB.battery_status_poll();
+	if(bat_update) {
+		update_voltage();
+	}
+
+	if (loc_update or loc_update){
+		update_set_point_error();
+	}
+}
+
 
 
 void HierarchicalController::update_quaternion() {

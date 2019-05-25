@@ -16,22 +16,22 @@
 class Socket {
 protected:
     	int _self_fd,
-            _partner_fd;
+            _adjoint_fd;
 
     	sockaddr_in _self_info,
-                    _partner_info;
+                    _adjoint_info;
 
-    	socklen_t _partner_addr_len;
+    	socklen_t _adjoint_addr_len;
 
 
     	//default init
     	Socket() {
     		_self_fd = -1;
-    		_partner_fd = -1;
-    		_partner_addr_len=0;
+    		_adjoint_fd = -1;
+    		_adjoint_addr_len=0;
 
     		memset(&_self_info, 0, sizeof(_self_info));
-    		memset(&_partner_info, 0, sizeof(_partner_info));
+    		memset(&_adjoint_info, 0, sizeof(_adjoint_info));
     	}
 
 public:
@@ -52,23 +52,21 @@ protected:
 		uint64_t    timestamp;
 	};
 
-	int _recv_fd;
-	sockaddr_in _recv_info;
-
 	std::map<int, Parnet_Info> _partner;
+	
 
 
 protected:
-	void init_server(int send_port_, int recv_port_, int timeout);
+	void init_server(int recv_port_, int timeout);
 
 public:
 	Socket_UDP()=delete;
-	Socket_UDP(int send_port, int recv_port, int timeout_sec=3);
+	Socket_UDP(int recv_port, int timeout_sec=3);
 	virtual ~Socket_UDP();
 
 
 	void register_partner(int id, const char* ip, int port);
-
+	
 
 	virtual void send(std::vector<unsigned char> v) override;
 	virtual ssize_t recv(void *buf, size_t len)     override;
@@ -87,7 +85,7 @@ protected:
 
 
 private:
-	void init_server(int prot, int client_num);
+	void init_server(int port, int client_num);
 
 public:
 	Socket_TCP() = delete;
