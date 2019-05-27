@@ -36,7 +36,7 @@ px4_add_board(
 		camera_feedback
 		commander
 		dataman
-		ekf2
+		#ekf2
 		events
 		fw_att_control
 		fw_pos_control_l1
@@ -48,8 +48,8 @@ px4_add_board(
 		local_position_estimator
 		logger
 		mavlink
-		mc_att_control
-		mc_pos_control
+		#mc_att_control
+		#mc_pos_control
 		navigator
 		sensors
 		sih
@@ -57,7 +57,7 @@ px4_add_board(
 		vmount
 		vtol_att_control
 		wind_estimator
-		mc_rl_control
+		hrl_control
 
 	SYSTEMCMDS
 		dyn
@@ -71,7 +71,7 @@ px4_add_board(
 		reboot
 		sd_bench
 		shutdown
-		tests # tests and test runner
+		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control

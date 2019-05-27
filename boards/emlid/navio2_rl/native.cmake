@@ -2,10 +2,8 @@
 px4_add_board(
 	VENDOR emlid
 	MODEL navio2
-	LABEL cross
+	LABEL native
 	PLATFORM posix
-	ARCHITECTURE cortex-a53
-	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 
 	DRIVERS
@@ -57,7 +55,6 @@ px4_add_board(
 		vmount
 		vtol_att_control
 		wind_estimator
-		mc_rl_control
 
 	SYSTEMCMDS
 		dyn
@@ -78,5 +75,14 @@ px4_add_board(
 		ver
 
 	EXAMPLES
-		
+		bottle_drop # OBC challenge
+		dyn_hello # dynamically loading modules example
+		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		hello
+		#hwtest # Hardware test
+		position_estimator_inav
+		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		rover_steering_control # Rover example app
+		segway
 	)

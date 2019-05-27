@@ -50,6 +50,26 @@
 			"name": "Navio2: make and upload",
 			"shell": true,
 			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"make emlid_navio2_rl_cross upload"
+			],
+			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+			"name": "Navio2_RL: make and upload",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"make emlid_navio2_rl_cross"
+			],
+			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+			"name": "Navio2_RL: make",
+			"shell": true,
+			"working_dir": "${project_path}"
 		}
 	],
 	"folders":

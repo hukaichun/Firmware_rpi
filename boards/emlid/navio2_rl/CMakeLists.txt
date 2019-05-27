@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,26 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-    MODULE modules__hrl_control
-    MAIN hrl_control
-    STACK_MAIN 2000
-    COMPILE_FLAGS
-    	-fexceptions
-        -O3
-    SRCS
-        hrl_control.cpp
-        hierarchical_controller.cpp
-        uORBInterface/uORBInterface.cpp
-        diary/hrl_socket/Socket_TCP.cpp
-        diary/hrl_socket/Socket_UDP.cpp
-        diary/diary.cpp
-    DEPENDS
-    )
 
-target_link_libraries(modules__hrl_control PUBLIC dl)
+add_subdirectory(navio_adc)
+add_subdirectory(navio_rgbled)
+add_subdirectory(navio_sysfs_rc_in)
 
-execute_process(COMMAND 
-                    make 
-                WORKING_DIRECTORY 
-                    /home/kai-PHD/PHD_package/Firmware/src/modules/hrl_control/neural_network)
+
+############################################################################
+# Upload
+############################################################################
+
+add_custom_target(upload
+	COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS pi:/home/pi
+	DEPENDS px4
+	COMMENT "uploading px4"
+	USES_TERMINAL
+	)

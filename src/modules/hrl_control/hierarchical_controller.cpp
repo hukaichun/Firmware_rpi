@@ -1,6 +1,7 @@
 #include "hierarchical_controller.hpp"
 
 
+HierarchicalController* HierarchicalController::unique_handle = nullptr;
 
 
 HierarchicalController::HierarchicalController(Cerebellum<18,3>& ce, Blabbermouth& di, uORBInterface& uo)
@@ -22,7 +23,7 @@ void HierarchicalController::main_loop() {
 
         /* wait for up to 10ms for data */
 	while(!_task_should_stop) {
-		int pret = px4_poll(&poll_fds, 1, 10);
+		int pret = px4_poll(&poll_fds, 1, 1);
 
 		if(pret<0) {
 			PX4_ERR("ERROR return value from poll(): %d", pret);
@@ -33,22 +34,17 @@ void HierarchicalController::main_loop() {
 				_policy.respond(_rotation_matrix, _set_point_error,
 					        _angular_rate, _velocity);
 			
-			size_t num = _log.take_note(_uORB._now,
-				                _quaternion, 
-				                _set_point_error,
-				                _angular_rate,
-				                _velocity,
-				                _policy._delta_p,
-				                low_level_control,
-				                _position,
-				                _position_sp,
-				                _voltage);
+			_log.take_note(_uORB._now,
+			                _quaternion, 
+			                _set_point_error,
+			                _angular_rate,
+			                _velocity,
+			                _policy._delta_p,
+			                low_level_control,
+			                _position,
+			                _position_sp,
+			                _voltage);
 
-			if(num>255)
-			{
-				// std::async(std::launch::async, &Diary::flush, &_log);
-				break;
-			}
 		}
 	}
 }

@@ -35,10 +35,13 @@ std::vector<unsigned char> msg2buff(
 	buf[8] = (msg.msgid >> 8) & 0xFF;
 	buf[9] = (msg.msgid >> 16) & 0xFF; // +1
 	memcpy(buf.data()+10, _MAV_PAYLOAD(&msg), msg.len);
-	mavlink::crc_accumulate_buffer(&msg.checksum, (char*)&buf[1], msg.len+head_len);
+
+	mavlink::crc_init(&msg.checksum);
+	mavlink::crc_accumulate_buffer(&msg.checksum, (char*)buf.data()+1, msg.len+head_len-1);
+	// mavlink::crc_accumulate_buffer(&msg.checksum, (char*)buf.data(), 2);
 	mavlink::crc_accumulate(crc_extra, &msg.checksum);
-	buf[msg.len+head_len] = (uint8_t)(msg.checksum & 0xFF); //+1
-	buf[msg.len+head_len+1] = (uint8_t)(msg.checksum >> 8); //+1
+	buf[msg.len+head_len] = (msg.checksum & 0xFF); //+1
+	buf[msg.len+head_len+1] = (msg.checksum >> 8); //+1
 	
 	return std::move(buf);
 }

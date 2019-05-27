@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,25 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-    MODULE modules__hrl_control
-    MAIN hrl_control
-    STACK_MAIN 2000
-    COMPILE_FLAGS
-    	-fexceptions
-        -O3
-    SRCS
-        hrl_control.cpp
-        hierarchical_controller.cpp
-        uORBInterface/uORBInterface.cpp
-        diary/hrl_socket/Socket_TCP.cpp
-        diary/hrl_socket/Socket_UDP.cpp
-        diary/diary.cpp
-    DEPENDS
-    )
+	MODULE drivers__navio_adc
+	MAIN navio_adc
+	COMPILE_FLAGS
+	SRCS
+		navio_adc.cpp
+	DEPENDS
+	)
 
-target_link_libraries(modules__hrl_control PUBLIC dl)
-
-execute_process(COMMAND 
-                    make 
-                WORKING_DIRECTORY 
-                    /home/kai-PHD/PHD_package/Firmware/src/modules/hrl_control/neural_network)

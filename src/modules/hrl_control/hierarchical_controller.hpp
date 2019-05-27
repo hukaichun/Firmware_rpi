@@ -25,12 +25,39 @@
 class HierarchicalController {
 public:
 	
+	
+	
+
+
+	static HierarchicalController* unique_handle; 
+
+	static HierarchicalController* get_instance(Cerebellum<18,3>& ce, Blabbermouth& bl, uORBInterface& uo){
+		if(unique_handle==nullptr)
+			unique_handle = new HierarchicalController(ce, bl, uo);
+		return unique_handle;
+	}
+
+	
+	
+private: 
+
+	
+
+	Cerebellum<18,3>&     _policy;
+	Blabbermouth&         _log;
+	uORBInterface&        _uORB;
+
+	volatile bool _task_should_stop;
+
+
+public:
+	void main_loop();	
 	// void status();
-	// void stop();
-	HierarchicalController(Cerebellum<18,3>&, Blabbermouth&, uORBInterface&);
+	void stop(){_task_should_stop = true;};
 
+
+private:
 	void update(); 
-
 	//dirty objs
 	AUXILIARY_OBJ(4,_quaternion);
 	AUXILIARY_OBJ(3,_angular_rate);
@@ -41,23 +68,7 @@ public:
 	AUXILIARY_OBJ(3,_set_point_error);
 	AUXILIARY_OBJ(9,_rotation_matrix);
 	AUXILIARY_OBJ(1,_voltage);
-
-
-	void main_loop();
-	
-private: 
-
-	
-
-	Cerebellum<18,3>&     _policy;
-	Blabbermouth&         _log;
-	uORBInterface&        _uORB;
-
-
-	
-
-
-	volatile bool _task_should_stop;
+	HierarchicalController(Cerebellum<18,3>&, Blabbermouth&, uORBInterface&);
 };
 
 
