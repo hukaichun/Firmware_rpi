@@ -27,7 +27,7 @@ public:
 	
 	
 	
-
+	volatile bool _task_should_stop;
 
 	static HierarchicalController* unique_handle; 
 
@@ -47,7 +47,7 @@ private:
 	Blabbermouth&         _log;
 	uORBInterface&        _uORB;
 
-	volatile bool _task_should_stop;
+	
 
 
 public:

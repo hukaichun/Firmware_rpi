@@ -36,7 +36,7 @@ px4_add_module(
     STACK_MAIN 2000
     COMPILE_FLAGS
     	-fexceptions
-        -O3
+        -O3 
     SRCS
         hrl_control.cpp
         hierarchical_controller.cpp

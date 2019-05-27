@@ -7,11 +7,11 @@ HierarchicalController* HierarchicalController::unique_handle = nullptr;
 HierarchicalController::HierarchicalController(Cerebellum<18,3>& ce, Blabbermouth& di, uORBInterface& uo)
 :_policy(ce), 
  _log(di), 
- _uORB(uo), 
- _task_should_stop(false) {}
+ _uORB(uo) {_task_should_stop = true;}
 
 
 void HierarchicalController::main_loop() {
+
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {
@@ -21,8 +21,10 @@ void HierarchicalController::main_loop() {
 
         std::array<float,4> low_level_control;
 
-        /* wait for up to 10ms for data */
+        _task_should_stop = false;
+
 	while(!_task_should_stop) {
+		/* wait for up to 1ms for data */
 		int pret = px4_poll(&poll_fds, 1, 1);
 
 		if(pret<0) {

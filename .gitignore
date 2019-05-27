@@ -1,5 +1,6 @@
 *.dSYM
 *.o
+*.so
 *.gch
 *.pyc
 *~

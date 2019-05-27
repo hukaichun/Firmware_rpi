@@ -6,7 +6,7 @@ CFLAG := -O3 -std=c++11
 SO_LIB := neural_network_L.so neural_network_H.so
 
 .PHONY: all
-all: clean neural_network_L.so neural_network_H.so upload
+all: neural_network_L.so neural_network_H.so upload
 
 %.so: %.cpp parameter.hpp
 	${CC} -fPIC -shared ${EIGEN_DIR} ${CFLAG} $< -o $@ 
