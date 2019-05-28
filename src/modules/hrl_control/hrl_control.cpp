@@ -42,35 +42,34 @@ int hrl_control_main(int argc, char *argv[])
 	HierarchicalController::get_instance(the_handle_of_neural_networks, the_handle_of_sanding_log_info, the_handle_of_all_uORB_topics);
 
 
-	if(argc<2) {
-		usage();
-		return 0;
+
+
+	switch(argc) {
+		case 2:
+			if(!strcmp(argv[1], "start")) {
+				register_controller();
+			} else if (!strcmp(argv[1], "stop")) {
+				stop();
+			} else {
+				usage();
+			}
+			break;
+
+		case 5:
+			if(!strcmp(argv[1], "register_partner")) {
+				int id = atoi(argv[2]);
+				int port = atoi(argv[4]);
+				PX4_INFO("partner id:%d, ip:%s, port:%d", id, argv[3], port);
+				the_handle_of_sanding_log_info.register_partner(id,argv[3],port);
+			} 
+			break;
+
+
+		default:
+			usage();
+			break;
 	}
 
-
-	if(!strcmp(argv[1], "start")) {
-		register_controller();
-		return 0;
-	}
-
-
-	if(!strcmp(argv[1], "stop")) {
-		stop();
-		return 0;
-	}
-
-
-	if(!strcmp(argv[1], "register_partner")) {
-		if (argc!=5) {
-			PX4_INFO("usage: hrl_control <partnerID> <partnerIP> <partnerPort>");
-			return -1;
-		}
-		int id = atoi(argv[2]);
-		int port = atoi(argv[4]);
-		PX4_INFO("partner id:%d, ip:%s, port:%d", id, argv[3], port);
-		the_handle_of_sanding_log_info.register_partner(id,argv[3],port);
-		return 0;
-	}
 
 
     	return 0;
@@ -125,7 +124,7 @@ void register_controller() {
 
 
 void usage() {
-	PX4_INFO("usage: hrl_control {start|stop|register_partner}");	
+	PX4_INFO("usage: hrl_control {start|stop|register_partner <id> <ip> <port>}");	
 }
 
 

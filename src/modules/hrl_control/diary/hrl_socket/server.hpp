@@ -1,14 +1,17 @@
+#pragma once
 
 //STL
 #include <queue>
 #include <cstring>
 #include <vector>
+#include <map>
+
+#include <cstdlib>
 
 #include <sys/socket.h> 
 #include <arpa/inet.h>  //sockaddr_in
 #include <unistd.h>     //open close write
 
-#include <stdexcept>
 
 
 
@@ -17,35 +20,53 @@
 
 class SocketServer{
 
+	struct ClientInfo {
+	sockaddr_in	info;
+	socklen_t	addr_len;
+	};
+
 private:
-    int _server_fd,
-        _client_fd;
+	// tcp obj
+	int _tcp_server_fd, _tcp_client_fd,
+	    _tcp_port;
 
-    sockaddr_in _server_info,
-                _client_info;
+	sockaddr_in 	_tcp_server_info;
+	ClientInfo	_tcp_client;
 
-    socklen_t _client_addr_len;
+	std::queue<std::vector<unsigned char>> _message_queue;
 
-    std::queue<std::vector<unsigned char>> _message_queue;
+	
+	// udp obj
+	int _udp_fd;
 
-    void init_server(int prot, int client_num);
+	std::map<int, ClientInfo> _udp_clients;
 
-    bool _attach_client;
+
+
+
+private:
+	void init_server(int prot, int client_num);
+
+	
 
 public:
 
+	SocketServer() = delete;
+	SocketServer(int _tcp_port);
+	virtual ~SocketServer();
 
-    SocketServer() = delete;
-    SocketServer(int port);
-    virtual ~SocketServer();
+	void accept();
 
-    void accept();
+	virtual size_t send(std::vector<unsigned char>);
 
-    virtual size_t store(std::vector<unsigned char>);
+	size_t send_tcp();
 
-    void send_all();
+	void clean_message_queue();
 
-    void clear_all();
+	//TODO: 
+	//std::vector<unsigned char> recv_tcp();
+
+	void register_partner(int id, const char* ip, int port);
 };
 
 

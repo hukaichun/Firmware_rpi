@@ -49,46 +49,46 @@ std::vector<unsigned char> msg2buff(
 
 
 
-Diary::Diary(int port, uint8_t sys_id)
-:Socket_TCP(port), _msg_t(), _mag_map(_msg_t), _system_id(sys_id) {
-	memset(&_msg_t, 0, sizeof(_msg_t));
-}
+// Diary::Diary(int port, uint8_t sys_id)
+// :Socket_TCP(port), _msg_t(), _mag_map(_msg_t), _system_id(sys_id) {
+// 	memset(&_msg_t, 0, sizeof(_msg_t));
+// }
 
 
-size_t Diary::take_note(uint64_t t,
-	        const std::array<float,4>& q, 
-	     	const std::array<float,3>& p, 
-	     	const std::array<float,3>& w, 
-	     	const std::array<float,3>& v,
-	     	const std::array<float,3>& hc,
-	     	const std::array<float,4>& lc,
-	     	const std::array<float,3>& lp,
-	     	const std::array<float,3>& sp,
-	     	const std::array<float,1>& vo) {
+// size_t Diary::take_note(uint64_t t,
+// 	        const std::array<float,4>& q, 
+// 	     	const std::array<float,3>& p, 
+// 	     	const std::array<float,3>& w, 
+// 	     	const std::array<float,3>& v,
+// 	     	const std::array<float,3>& hc,
+// 	     	const std::array<float,4>& lc,
+// 	     	const std::array<float,3>& lp,
+// 	     	const std::array<float,3>& sp,
+// 	     	const std::array<float,1>& vo) {
 	
-	_control_info.timestamp = t;
-	memcpy(_control_info.quaternion.data(),       q.data(),  sizeof(float)*q.size());
-	memcpy(_control_info.position.data(),         p.data(),  sizeof(float)*p.size());
-	memcpy(_control_info.angular_velocity.data(), w.data(),  sizeof(float)*w.size());
-	memcpy(_control_info.velocity.data(),         v.data(),  sizeof(float)*v.size());
-	memcpy(_control_info.control_h.data(),        hc.data(), sizeof(float)*hc.size());
-	memcpy(_control_info.control_l.data(),        lc.data(), sizeof(float)*lc.size());
-	memcpy(_control_info.local_position.data(),   lp.data(), sizeof(float)*lp.size());
-	memcpy(_control_info.position_sp.data(),      sp.data(), sizeof(float)*sp.size());
-	memcpy(_control_info.voltage.data(),          vo.data(), sizeof(float)*vo.size());
-	_control_info.serialize(_mag_map);
+// 	_control_info.timestamp = t;
+// 	memcpy(_control_info.quaternion.data(),       q.data(),  sizeof(float)*q.size());
+// 	memcpy(_control_info.position.data(),         p.data(),  sizeof(float)*p.size());
+// 	memcpy(_control_info.angular_velocity.data(), w.data(),  sizeof(float)*w.size());
+// 	memcpy(_control_info.velocity.data(),         v.data(),  sizeof(float)*v.size());
+// 	memcpy(_control_info.control_h.data(),        hc.data(), sizeof(float)*hc.size());
+// 	memcpy(_control_info.control_l.data(),        lc.data(), sizeof(float)*lc.size());
+// 	memcpy(_control_info.local_position.data(),   lp.data(), sizeof(float)*lp.size());
+// 	memcpy(_control_info.position_sp.data(),      sp.data(), sizeof(float)*sp.size());
+// 	memcpy(_control_info.voltage.data(),          vo.data(), sizeof(float)*vo.size());
+// 	_control_info.serialize(_mag_map);
 	
-	//finialize
-	auto buf = ::msg2buff(_msg_t, _system_id, 0, _control_info.CRC_EXTRA);
-	send(buf);
-	return _message_queue.size();
+// 	//finialize
+// 	auto buf = ::msg2buff(_msg_t, _system_id, 0, _control_info.CRC_EXTRA);
+// 	send(buf);
+// 	return _message_queue.size();
 	
-}
+// }
 
 
 
-Blabbermouth::Blabbermouth(int recv_port, int sys_id)
-:Socket_UDP(recv_port), _msg_t(), _mag_map(_msg_t), _system_id(sys_id) {
+Blabbermouth::Blabbermouth(int tcp_port_, int sys_id)
+:SocketServer(tcp_port_), _mag_map(_msg_t), _system_id(sys_id) {
 	memset(&_msg_t, 0, sizeof(_msg_t));
 }
 
