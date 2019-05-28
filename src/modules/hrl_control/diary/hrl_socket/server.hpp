@@ -33,14 +33,15 @@ private:
 	sockaddr_in 	_tcp_server_info;
 	ClientInfo	_tcp_client;
 
-	std::queue<std::vector<unsigned char>> _message_queue;
-
-	
 	// udp obj
 	int _udp_fd;
 
 	std::map<int, ClientInfo> _udp_clients;
 
+
+
+protected:
+	std::queue<std::vector<unsigned char>> _message_queue;
 
 
 
@@ -55,18 +56,23 @@ public:
 	SocketServer(int _tcp_port);
 	virtual ~SocketServer();
 
+	
+
+	void send_udp(std::vector<unsigned char>);
+	void register_partner(int id, const char* ip, int port);
+	// void remove_partner();
+
+
 	void accept();
-
-	virtual size_t send(std::vector<unsigned char>);
-
-	size_t send_tcp();
+	size_t store(std::vector<unsigned char>);
+	void send_tcp(std::queue<std::vector<unsigned char>>);
+	// void close_tcp();
 
 	void clean_message_queue();
 
 	//TODO: 
 	//std::vector<unsigned char> recv_tcp();
 
-	void register_partner(int id, const char* ip, int port);
 };
 
 

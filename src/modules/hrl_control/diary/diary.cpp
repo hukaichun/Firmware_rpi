@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstring>
 #include <utility>
+#include <thread>
 
 //assume mavlink 2.0
 std::vector<unsigned char> msg2buff(
@@ -38,7 +39,6 @@ std::vector<unsigned char> msg2buff(
 
 	mavlink::crc_init(&msg.checksum);
 	mavlink::crc_accumulate_buffer(&msg.checksum, (char*)buf.data()+1, msg.len+head_len-1);
-	// mavlink::crc_accumulate_buffer(&msg.checksum, (char*)buf.data(), 2);
 	mavlink::crc_accumulate(crc_extra, &msg.checksum);
 	buf[msg.len+head_len] = (msg.checksum & 0xFF); //+1
 	buf[msg.len+head_len+1] = (msg.checksum >> 8); //+1
@@ -48,49 +48,21 @@ std::vector<unsigned char> msg2buff(
 
 
 
-
-// Diary::Diary(int port, uint8_t sys_id)
-// :Socket_TCP(port), _msg_t(), _mag_map(_msg_t), _system_id(sys_id) {
-// 	memset(&_msg_t, 0, sizeof(_msg_t));
-// }
-
-
-// size_t Diary::take_note(uint64_t t,
-// 	        const std::array<float,4>& q, 
-// 	     	const std::array<float,3>& p, 
-// 	     	const std::array<float,3>& w, 
-// 	     	const std::array<float,3>& v,
-// 	     	const std::array<float,3>& hc,
-// 	     	const std::array<float,4>& lc,
-// 	     	const std::array<float,3>& lp,
-// 	     	const std::array<float,3>& sp,
-// 	     	const std::array<float,1>& vo) {
-	
-// 	_control_info.timestamp = t;
-// 	memcpy(_control_info.quaternion.data(),       q.data(),  sizeof(float)*q.size());
-// 	memcpy(_control_info.position.data(),         p.data(),  sizeof(float)*p.size());
-// 	memcpy(_control_info.angular_velocity.data(), w.data(),  sizeof(float)*w.size());
-// 	memcpy(_control_info.velocity.data(),         v.data(),  sizeof(float)*v.size());
-// 	memcpy(_control_info.control_h.data(),        hc.data(), sizeof(float)*hc.size());
-// 	memcpy(_control_info.control_l.data(),        lc.data(), sizeof(float)*lc.size());
-// 	memcpy(_control_info.local_position.data(),   lp.data(), sizeof(float)*lp.size());
-// 	memcpy(_control_info.position_sp.data(),      sp.data(), sizeof(float)*sp.size());
-// 	memcpy(_control_info.voltage.data(),          vo.data(), sizeof(float)*vo.size());
-// 	_control_info.serialize(_mag_map);
-	
-// 	//finialize
-// 	auto buf = ::msg2buff(_msg_t, _system_id, 0, _control_info.CRC_EXTRA);
-// 	send(buf);
-// 	return _message_queue.size();
-	
-// }
-
-
-
 Blabbermouth::Blabbermouth(int tcp_port_, int sys_id)
 :SocketServer(tcp_port_), _mag_map(_msg_t), _system_id(sys_id) {
 	memset(&_msg_t, 0, sizeof(_msg_t));
 }
+
+
+
+void Blabbermouth::save_flush_message_buffer() {
+	std::queue<std::vector<unsigned char>> tmp_queue;
+	std::swap(tmp_queue, _message_queue);
+
+	std::thread the_thread(&Blabbermouth::send_tcp, this, std::move(tmp_queue));
+	the_thread.detach();
+}
+
 
 
 size_t Blabbermouth::take_note(uint64_t t,
@@ -120,7 +92,11 @@ size_t Blabbermouth::take_note(uint64_t t,
 	
 	//finialize
 	auto buf = ::msg2buff(_msg_t, _system_id, 0, _control_info.CRC_EXTRA);
-	send(buf);
+	send_udp(buf);
+	size_t stored_message_num = store(std::move(buf));
+	if(stored_message_num>255) {
+		save_flush_message_buffer();
+	}
 	return num++;
 	
 }

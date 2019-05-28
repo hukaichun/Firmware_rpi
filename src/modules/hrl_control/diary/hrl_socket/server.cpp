@@ -109,7 +109,7 @@ void SocketServer::accept() {
 
 
 
-size_t SocketServer::send(std::vector<unsigned char> message) {
+void SocketServer::send_udp(std::vector<unsigned char> message) {
 	for(auto &partner: _udp_clients) {
 		sockaddr_in& 	partner_info = partner.second.info;
 
@@ -119,29 +119,27 @@ size_t SocketServer::send(std::vector<unsigned char> message) {
 			(sockaddr*)&partner_info, 
 			partner.second.addr_len);
 	}
+}
 
+
+size_t SocketServer::store(std::vector<unsigned char> message) {
 	_message_queue.push(std::move(message));
 	return _message_queue.size();
 }
 
 
-
-
-
-size_t SocketServer::send_tcp() {
-	size_t message_num = _message_queue.size();
+void SocketServer::send_tcp(std::queue<std::vector<unsigned char>> msg_queue) {
 
 	if(_tcp_client.addr_len>0) {
-		while(_message_queue.size()>0) {
-			auto& msg = _message_queue.front();
+		while(msg_queue.size()>0) {
+			auto& msg = msg_queue.front();
 			::write(_tcp_client_fd, msg.data(), msg.size());
-			_message_queue.pop();
+			msg_queue.pop();
 		}
 	} else {
 		clean_message_queue();
 	}
 		
-	return message_num;
 }
 
 
