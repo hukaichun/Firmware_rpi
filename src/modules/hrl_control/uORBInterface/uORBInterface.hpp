@@ -17,7 +17,6 @@
 #include <uORB/topics/led_control.h>
 
 
-#include <stdexcept>
 
 
 #define MAX_NUM_OUTPUTS 8

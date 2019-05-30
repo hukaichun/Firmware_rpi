@@ -35,7 +35,6 @@ px4_add_module(
     MAIN hrl_control
     STACK_MAIN 2000
     COMPILE_FLAGS
-    	-fexceptions
         -O3 
     SRCS
         hrl_control.cpp

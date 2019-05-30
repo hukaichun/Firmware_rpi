@@ -1,11 +1,7 @@
 #include "server.hpp"
 
 
-#ifdef __THROW_ERROR_MESSAGE__
-	#include <stdexcept>
-	#include <sstream>
-	#include <utility>
-#endif //__THROW_ERROR_MESSAGE__
+
 
 
 
@@ -49,14 +45,7 @@ void SocketServer::init_server(int port, int client_num=1) {
 
 
 	if(_tcp_server_fd<0) {
-#ifdef __THROW_ERROR_MESSAGE__
-		ss << "\t[" << __func__ << "]"
-		   << "_tcp_server_fd:" << _tcp_server_fd ;
-		ss >> error_message;
-		throw std::runtime_error(error_message.c_str()); 
-#else
-		exit(-1);
-#endif //__THROW_ERROR_MESSAGE__
+		errx(-1, "[%s] ask tcp socket file discription fail", __func__);
 	}
 
 
@@ -66,14 +55,7 @@ void SocketServer::init_server(int port, int client_num=1) {
 	int binding_result = bind(_tcp_server_fd, (sockaddr*)&_tcp_server_info, sizeof(_tcp_server_info));
 	// handle error
 	if(binding_result < 0) {
-#ifdef __THROW_ERROR_MESSAGE__
-		ss << "\t[" << __func__ << "]"
-		   << "binding_result:" << binding_result ;
-		ss >> error_message;
-		throw std::runtime_error(error_message.c_str()); 
-#else
 		exit(-1);
-#endif //__THROW_ERROR_MESSAGE__
 	}
 
 
@@ -83,14 +65,7 @@ void SocketServer::init_server(int port, int client_num=1) {
 	_udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	//handle error
 	if(_udp_fd<0) {
-#ifdef __THROW_ERROR_MESSAGE__
-		ss << "\t[" << __func__ << "]"
-		   << "binding_result:" << binding_result ;
-		ss >> error_message;
-		throw std::runtime_error(error_message.c_str()); 
-#else
 		exit(-1);
-#endif //__THROW_ERROR_MESSAGE__
 	}
 
 	return;

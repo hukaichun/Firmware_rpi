@@ -149,21 +149,10 @@ void uORBInterface::uORBTopicInit() {
 	_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
-	
-
 	PX4_INFO("rc_fd: %d", _input_rc_sub);
 	PX4_INFO("vehicle_attitude_fd: %d", _vehicle_attitude_sub);
 	PX4_INFO("vehicle_local_position_fd: %d", _vehicle_local_position_sub);
 	PX4_INFO("battery_status_fd: %d", _battery_status_sub);
-
-	if(_input_rc_sub<0)
-		throw std::runtime_error("subscribe input_rc failed");
-	if(_vehicle_attitude_sub<0)
-		throw std::runtime_error("subscribe vehicle_attitude failed");
-	if(_vehicle_local_position_sub<0)
-		throw std::runtime_error("subscribe vehicle_local_position failed");
-	if(_battery_status_sub<0)
-		throw std::runtime_error("subscribe battery_status failed");
 
 	return;
 }
@@ -175,6 +164,5 @@ void uORBInterface::pwm_init(const char* pwm_device, int max_num_outputs) {
 	if (_pwm_out_handle->init() != 0) {
 		delete _pwm_out_handle;
 		_pwm_out_handle = nullptr;
-		throw std::runtime_error("PWM output init failed");
 	}
 }

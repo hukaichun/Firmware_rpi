@@ -4,7 +4,8 @@
 #include <array>
 #include <vector>
 
-#include <stdexcept>
+#include <cstdlib>
+
 
 
 
@@ -33,7 +34,7 @@ public:
  	 backup({.handle=nullptr, .api=nullptr, .name=nullptr}) {
 		dlerror();
 		if(!load_nn(DIR)) {
-			throw std::runtime_error(dlerror());
+			exit(-1);
 		}
 	}
 
