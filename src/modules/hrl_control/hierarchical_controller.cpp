@@ -1,5 +1,7 @@
 #include "hierarchical_controller.hpp"
 
+#include <cstdio>
+
 
 HierarchicalController* HierarchicalController::unique_handle = nullptr;
 
@@ -29,6 +31,7 @@ void HierarchicalController::main_loop() {
 
 		if(pret<0) {
 			PX4_ERR("ERROR return value from poll(): %d", pret);
+			// printf("ERROR return value from poll(): %d", pret);
 		} else {
 			update();
 
