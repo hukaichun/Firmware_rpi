@@ -17,7 +17,7 @@ void HierarchicalController::main_loop() {
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {
-		.fd     = _uORB._vehicle_attitude_sub,
+				.fd     = _uORB._vehicle_attitude_sub,
                 .events = POLLIN
         };
 
@@ -38,6 +38,8 @@ void HierarchicalController::main_loop() {
 			low_level_control=
 				_policy.respond(_rotation_matrix, _set_point_error,
 					        _angular_rate, _velocity);
+
+			_uORB.pwm_output(low_level_control);
 			
 			_log.take_note(_uORB._now,
 			                _quaternion, 

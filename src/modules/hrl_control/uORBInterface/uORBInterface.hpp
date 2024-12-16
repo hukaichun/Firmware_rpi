@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <cmath>
 
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
@@ -62,6 +64,14 @@ public:
 	 */
 	void
 		led_control_publish();
+
+
+	/**
+	 * Low-level output
+	 */
+	void 
+		pwm_output(std::array<float, 4UL>& nn_output);
+	
 
 
 	inline void

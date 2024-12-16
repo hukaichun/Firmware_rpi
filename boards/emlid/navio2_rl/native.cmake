@@ -55,6 +55,7 @@ px4_add_board(
 		vmount
 		vtol_att_control
 		wind_estimator
+		hrl_control
 
 	SYSTEMCMDS
 		dyn

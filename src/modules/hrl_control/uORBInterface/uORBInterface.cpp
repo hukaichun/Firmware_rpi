@@ -3,6 +3,8 @@
 #include <cstring>
 
 
+#define MASS 			0.762
+
 uORBInterface::~uORBInterface() {
 	if(_pwm_out_handle)
 		delete _pwm_out_handle;
@@ -165,4 +167,30 @@ void uORBInterface::pwm_init(const char* pwm_device, int max_num_outputs) {
 		delete _pwm_out_handle;
 		_pwm_out_handle = nullptr;
 	}
+}
+
+
+void uORBInterface::pwm_output(std::array<float, 4UL>& nn_output) {
+	static uint16_t _pwm_output[4] = {0};
+
+	float battery_voltage_pwm_calc = _battery_status.voltage_filtered_v;
+	if (battery_voltage_pwm_calc < 1.0)
+		battery_voltage_pwm_calc = 11.1;
+
+	for(int i=0; i<4; ++i)
+	{
+		auto _tmp_pwm = nn_output[i]*4 + MASS/4*9.8;
+		if(_tmp_pwm < 0)
+			_tmp_pwm = 0;
+		
+		_pwm_output[i] = static_cast<uint16_t>((-4e-4 + sqrt(16e-8+(4*3e-7*_tmp_pwm)/battery_voltage_pwm_calc))/(2*3e-7) + 1000);
+		
+		if(_pwm_output[i]<900)
+			_pwm_output[i] = 900;
+		else if (_pwm_output[i]>2100)
+			_pwm_output[i] = 2100;
+		
+	}
+
+	_pwm_out_handle->send_output_pwm(_pwm_output, 4);
 }
